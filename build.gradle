@@ -1,0 +1,80 @@
+plugins {
+  id 'application'
+  id 'java'
+  id 'org.springframework.boot' version '4.1.0'
+  id 'io.spring.dependency-management' version '1.1.7'
+  id 'jacoco'
+  id 'maven-publish'
+  id 'com.github.ben-manes.versions' version '0.54.0'
+  id 'org.cyclonedx.bom' version '3.2.4'
+  id 'com.gorylenko.gradle-git-properties' version '4.0.1'
+}
+
+group = 'uk.gov.hmcts.cp'
+version = System.getProperty('ARTEFACT_VERSION') ?: '0.0.999'
+
+apply {
+  from("$rootDir/gradle/repositories.gradle")
+  from("$rootDir/gradle/java.gradle")
+  from("$rootDir/gradle/dependency.gradle")
+  from("$rootDir/gradle/pmd.gradle")
+  from("$rootDir/gradle/test.gradle")
+  from("$rootDir/gradle/jar.gradle")
+}
+
+// We MUST keep all dependencies in the build.gradle to allow dependabot to provide version updates
+// Sadly, dependabot does not track dependencies in the apply-from files
+dependencies {
+  // Java core
+  implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+
+  compileOnly 'org.projectlombok:lombok:1.18.46'
+  annotationProcessor 'org.projectlombok:lombok:1.18.46'
+  testCompileOnly 'org.projectlombok:lombok:1.18.46'
+  testAnnotationProcessor 'org.projectlombok:lombok:1.18.46'
+
+  // Spring boot core
+  implementation 'org.springframework.boot:spring-boot-starter-web'
+  testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
+  testImplementation('org.springframework.boot:spring-boot-starter-test') {
+    exclude group: 'junit', module: 'junit'
+    exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+  }
+  // TestRestTemplate (real-HTTP sanity test) builds on RestTemplateBuilder, which moved to the
+  // spring-boot-restclient module in Boot 4 and is not pulled in transitively by the test starters.
+  testImplementation 'org.springframework.boot:spring-boot-restclient'
+
+  // BDD / acceptance tests — plain Cucumber on JUnit Platform + Spring (no Serenity)
+  testImplementation platform('io.cucumber:cucumber-bom:7.20.1')
+  testImplementation 'io.cucumber:cucumber-java'
+  testImplementation 'io.cucumber:cucumber-junit-platform-engine'
+  testImplementation 'io.cucumber:cucumber-spring'
+  // Gradle discovers tests by class, so the Cucumber engine needs a @Suite entry point to run
+  testImplementation 'org.junit.platform:junit-platform-suite'
+
+
+  // --- Observability / Actuator / OTEL / Prometheus ---
+  implementation 'org.springframework.boot:spring-boot-starter-actuator'
+  implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
+
+  // Security: pin transitive tomcat-embed-core to patched version (CVE-2026-41293, -43512, et al.)
+  // Brought in transitively via spring-boot-starter-web; >=11.0.0-M1,<11.0.22 are vulnerable
+  implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
+
+  // --- Persistence: JPA + Postgres + Flyway (NG-S01) ---
+  implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+  implementation 'org.postgresql:postgresql'
+  implementation 'org.flywaydb:flyway-core'
+  implementation 'org.flywaydb:flyway-database-postgresql'
+
+  // --- Async engine: cp-task-manager (embedded library; co-locates the `jobs` table via its own
+  //     Flyway auto-config merged into the app's single Flyway run — see AC-001a) ---
+  implementation 'uk.gov.hmcts.cp:task-manager-service:1.0.10'
+  // cp-task-manager's ExecutionInfo.jobData is a jakarta JsonObject
+  implementation 'jakarta.json:jakarta.json-api:2.1.3'
+
+  // --- Integration testing: Postgres via Testcontainers ---
+  testImplementation platform('org.testcontainers:testcontainers-bom:2.0.3')
+  testImplementation 'org.testcontainers:testcontainers'
+  testImplementation 'org.testcontainers:testcontainers-postgresql'
+}

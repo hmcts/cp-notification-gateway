@@ -1,0 +1,10 @@
+# Test-profile overrides (active via @ActiveProfiles("test") on the integration/acceptance bases).
+# No OTLP collector runs during tests, so disable the OTLP exporters — otherwise the OTLP metric/trace
+# push fails with ConnectException to http://localhost:4318 on context shutdown, spamming WARN logs.
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    enabled: false

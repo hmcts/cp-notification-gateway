@@ -15,10 +15,13 @@ message (per `legacy-result-event-contract.md`), which is why it is split out ra
 NG-S02.
 
 ## Acceptance criteria
-- [ ] AC-014: Given an inbound message with `ReplyTo` set, when the notification reaches a terminal
-  state, then the corresponding result event is sent to the queue named by `ReplyTo`.
-- [ ] AC-015: Given an inbound message with no `ReplyTo` (the mi-reportdata MVP), when the notification
-  reaches a terminal state, then no result event is published and the send completes silently.
+- [ ] AC-014: Given a notification whose `result_queue` is set (the inbound ASB `ReplyTo` captured at
+  ingest, NG-S02/AC-004), when it reaches a terminal state, then the corresponding result event is sent
+  to the queue named by `result_queue` — read back from the row (already loaded for the state guard),
+  not from `job_data` or the original message.
+- [ ] AC-015: Given a notification whose `result_queue` is null (the inbound message had no `ReplyTo` —
+  the mi-reportdata MVP), when it reaches a terminal state, then no result event is published and the
+  send completes silently.
 - [ ] AC-016: Given a `markSent()`/`markFailed()` outcome, when the result event is built, then its
   name and payload match the legacy golden-master payload exactly (only routing changes from topic to
   `ReplyTo` queue):
@@ -54,6 +57,15 @@ NG-S02.
 - [ ] Jira ticket updated with test evidence (once a ticket exists — see Notes).
 
 ## Notes / open questions
+- **Routing target is persisted, not threaded (design decision).** The result queue is the inbound ASB
+  `ReplyTo` message property, **captured at ingest into `notification.result_queue`** (NG-S02/AC-004) and
+  **read back here at the terminal hop**. It is deliberately **not** carried in cp-task-manager `job_data`:
+  the terminal event fires in a *later* task execution than ingest, legacy narrows/rebuilds `job_data`
+  each hop (`SendEmailDetailsJobState` → `ExternalIdentifierJobState`), and unlike `correlationId` a lost
+  routing target has no regenerate fallback (it would silently break a consumer). Persisting it also means
+  it is read for free alongside the state-transition guard load. Naming: column/field `result_queue`
+  (the wire property stays the standard ASB `ReplyTo`); kept distinct from the Gov.Notify **email**
+  `replyToAddress` to avoid confusion.
 - **FR/AC traceability:** FR-007 → AC-014, AC-015; FR-008 → AC-016. **FR-010 → AC-019** partially
   covered here (result-queue-message sub-scenario) — see `_index.md` for the full breakdown across
   NG-S02/NG-S03/NG-S10/NG-S11/NG-S12.

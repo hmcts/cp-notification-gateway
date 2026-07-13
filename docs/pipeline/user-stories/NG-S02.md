@@ -25,7 +25,9 @@ in NG-S07/NG-S08.
   consumed, then both are processed through the same shared queue and handler — no per-client queue,
   no per-originator routing (`clientContext` is a passthrough only).
 - [ ] AC-004: Given a command with a `notificationId` not present in the table, when consumed, then a
-  `notification` row is inserted with status `QUEUED`.
+  `notification` row is inserted with status `QUEUED` — and, when the inbound ASB message carries a
+  `ReplyTo` property, its value is persisted into `result_queue` on that same insert (consumed later by
+  NG-S03/FR-007; `null` when absent, the mi-reportdata MVP case).
 - [ ] AC-005: Given a command whose `notificationId` already exists, when consumed (redelivery or
   duplicate), then it is a silent no-op — no second row, no second task.
 - [ ] AC-006: Given a new command, when it is processed, then the `notification` row insert and the

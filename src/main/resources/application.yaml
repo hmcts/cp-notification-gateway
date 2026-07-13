@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: cp-notification-gateway
+  datasource:
+    url: ${CP_NG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notificationgateway}
+    username: ${CP_NG_DATASOURCE_USERNAME:notificationgateway}
+    password: ${CP_NG_DATASOURCE_PASSWORD:notificationgateway}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: cp-notification-gateway-hikari
+      maximum-pool-size: ${CP_NG_DB_POOL_SIZE:20}
+      minimum-idle: ${CP_NG_DB_MIN_IDLE:5}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # schema owned by Flyway; Hibernate only validates mappings match the DB
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    # classpath:db/migration is augmented at runtime by cp-task-manager's
+    # TaskManagerFlywayAutoConfiguration, which merges classpath:db/taskmanager (the `jobs` table)
+    # into this same Flyway run — no manual spring.flyway.locations entry needed (AC-001a).
+
+server:
+  port: ${SERVER_PORT:8082}
+
+azure:
+  application-insights:
+    instrumentation-key: ${rpe.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true   # enables liveness / readiness groups
+
+logging:
+  level:
+    root: INFO

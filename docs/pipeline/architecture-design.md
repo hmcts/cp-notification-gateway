@@ -57,7 +57,7 @@ rich aggregate needing replay/audit-by-event — so CQRS/ES is deliberately drop
 | **`cp-notification-gateway`** (svc) | new | the service | template `service-hmcts-crime-springboot-template` |
 | `…/consumer` | new | `ServiceBusProcessorClient` + listener, `disableAutoComplete`, complete/abandon | `cpp-mbd-idam-integration/src/main/java/uk/gov/hmcts/cp/idam/consumer/ServiceBusEventConsumer.java` (body read + complete/abandon), `…/config/ServiceBusConfig.java` |
 | `…/command` | new | `SendEmailCommand` DTO (flat JSON, logical fields per requirements §Interface contracts) | (legacy) `notificationnotify.command.send-email-notification` |
-| `…/persistence` | new | `Notification` JPA entity (incl. `client_context`, persisted on ingest for result-event parity), repository, `V1000__create_notification_table.sql` | `cp-court-list-publishing-service` (Flyway/JPA + real cp-task-manager consumer) |
+| `…/persistence` | new | `Notification` JPA entity (incl. `client_context` for result-event parity and `result_queue` — the inbound ASB `ReplyTo`, both persisted on ingest), repository, `V1000__create_notification_table.sql` | `cp-court-list-publishing-service` (Flyway/JPA + real cp-task-manager consumer) |
 | `…/tasks` | new | `SendEmailTask`, `CheckEmailStatusTask` implementing `ExecutableTask`, retry list via `getRetryDurationsInSecs()` | `cp-task-manager/.../service/task/ExecutableTask.java:76-95`; (legacy) `SendEmailTask`/`CheckEmailStatusTask` |
 | `…/sender` | new | `SenderFactory` routing, `GovNotifySender`, `Office365Sender` (stub in M1, live M6) | (legacy) `…/sender/SenderFactory.java`, `EmailSender`, `MicrosoftOffice365ClientService` |
 | `…/blob` | new | `AttachmentDownloader` (azure-storage-blob + Workload Identity), 403/404 → permanent-fail | `cpp-context-reference-data` (UC1 BYO filestore) |
@@ -105,7 +105,7 @@ mi-reportdata sends no `ReplyTo`)
 | ASB `subject` | `send-email-notification` (command name; consumer asserts) | event name (`public.notificationnotify.events.notification-{sent,failed}`) |
 | Body | flat JSON = logical command fields (no framework `_metadata` wrapper) | flat JSON = golden-master payload (no wrapper) |
 | Originator (`clientContext`) | optional **top-level body field**; **not** a routing key — persisted on the row and echoed into result events for parity (present-if-set) | echoed into payload if present |
-| `ReplyTo` | native ASB `ReplyTo` message property → gates + names the result queue (FR-007) | n/a (published *to* that queue) |
+| `ReplyTo` | native ASB `ReplyTo` message property → **captured at ingest into `notification.result_queue`** (the terminal event fires in a later task execution, so it is persisted, not threaded through `job_data`); gates + names the result queue (FR-007) | n/a (published *to* the persisted `result_queue`) |
 | Correlation | `applicationProperties.correlationId` → MDC (NFR-007); missing → generate | propagate the same `correlationId` in `applicationProperties` |
 | `userId` | n/a | `applicationProperties.userId` when present (legacy `sent` sets it; `failed` does not) |
 | Serialisation | Jackson (`uk.gov.hmcts.cp.*`), UTF-8 JSON `getBody().toString()` per house pattern | Jackson JSON |
@@ -219,6 +219,10 @@ sequenceDiagram
   `cjsm.net` routing domain and the 2 MB threshold are **config values** (FR-018), not runtime toggles.
 - **Correlation:** `applicationProperties.correlationId` → MDC on consume; propagated onto the
   cp-task-manager `job_data` and onto any outbound result event's `applicationProperties`.
+  Contrast with the result-routing target: `correlationId` is per-execution trace metadata that rightly
+  rides `job_data` (missing → regenerate), whereas the ASB `ReplyTo` is **notification-scoped, has no
+  regenerate fallback, and is read at the terminal hop** — so it is persisted on the row
+  (`result_queue`), not carried in `job_data`.
 - **Dual-write atomicity (Q-delegated #4):** the ingest path is **atomic** — the `notification`
   INSERT and the cp-task-manager task enqueue commit in **one local transaction** on the co-located
   datasource (FR-002/NFR-010), and ASB redelivery + `notificationId` PK dedupe cover a crash between DB

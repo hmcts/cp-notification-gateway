@@ -18,7 +18,9 @@ harness"); it is verified transitively by every later story's tests passing agai
 - [ ] AC-001: Given a clean database, when Flyway runs, then the `notification` table is created with
   columns `notification_id` (UUID PK), `notification_type` (TEXT, default `EMAIL`), `status` (TEXT, no
   CHECK), `send_to_address` (TEXT, nullable), `status_code` (INT), `error_message` (TEXT),
-  `client_context` (TEXT, nullable), and non-null audit timestamps `created_at`/`updated_at`
+  `client_context` (TEXT, nullable), `result_queue` (TEXT, nullable — the inbound ASB `ReplyTo`
+  persisted on ingest for terminal-hop result routing, FR-007/NG-S03; distinct from the Gov.Notify
+  email `replyToAddress`), and non-null audit timestamps `created_at`/`updated_at`
   (`TIMESTAMP WITH TIME ZONE`) — and no eventstore/Liquibase objects are created.
 - [ ] AC-001a: Given a clean database and the cp-task-manager library on the classpath, when the
   service starts, then its Flyway auto-config (`TaskManagerFlywayAutoConfiguration`,
