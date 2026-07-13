@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- claude-artifact: created=2026-07-10 project=cp-notification-gateway kind=report -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cp-notification-gateway — MbD topology blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04080f; --panel:#081120; --panel-2:#0a1628; --grid:rgba(40,150,220,.08);
+    --cyan:#2bd9fe; --cyan-dim:#1a7c95; --mag:#ff3d81; --mag-dim:#8a2c50;
+    --amber:#ffb84d; --green:#4ce6a1; --txt:#9fc3d8; --txt-bright:#d9eefa; --edge:#14304a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    linear-gradient(rgba(40,150,220,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(40,150,220,.03) 1px,transparent 1px),var(--void);
+    background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+    color:var(--txt);font-family:'Chakra Petch',sans-serif;font-size:15px;line-height:1.7}
+  .frame{max-width:1040px;margin:0 auto;padding:44px 24px 120px}
+  .mono{font-family:'Share Tech Mono',monospace}
+
+  .tb-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border:1px solid var(--edge);border-bottom:none;
+    background:var(--panel);padding:10px 22px;font:11.5px 'Share Tech Mono',monospace;color:var(--cyan-dim);
+    text-transform:uppercase;letter-spacing:2px}
+  h1{border:1px solid var(--cyan-dim);background:var(--panel);padding:26px 22px;margin-bottom:48px;
+    font-size:clamp(24px,4.4vw,40px);font-weight:700;letter-spacing:1px;color:var(--txt-bright);text-transform:uppercase;line-height:1.12}
+  h1 .hl{color:var(--cyan);text-shadow:0 0 18px rgba(43,217,254,.6)}
+  h1 small{display:block;font:400 13px 'Share Tech Mono',monospace;letter-spacing:1px;color:var(--cyan-dim);
+    text-transform:none;margin-top:10px}
+
+  section{position:relative;margin-bottom:56px;padding:32px 30px 26px;background:rgba(8,17,32,.78);border:1px solid var(--edge)}
+  section::before,section::after,section .tick::before,section .tick::after{content:"";position:absolute;width:14px;height:14px;border-color:var(--cyan);border-style:solid}
+  section::before{top:-1px;left:-1px;border-width:2px 0 0 2px} section::after{top:-1px;right:-1px;border-width:2px 2px 0 0}
+  section .tick::before{bottom:-1px;left:-1px;border-width:0 0 2px 2px} section .tick::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+  .sec-id{position:absolute;top:-11px;left:24px;background:var(--void);font:11px 'Share Tech Mono',monospace;
+    letter-spacing:3px;color:var(--cyan-dim);padding:0 10px;text-transform:uppercase}
+  h2{color:var(--cyan);font-size:19px;font-weight:600;text-transform:uppercase;letter-spacing:3px;margin-bottom:18px;
+    text-shadow:0 0 12px rgba(43,217,254,.35)}
+  p{max-width:84ch;margin-bottom:12px}
+  ul{margin:0 0 12px 20px;max-width:84ch} li{margin-bottom:7px}
+  code{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);background:rgba(43,217,254,.07);padding:1px 6px;border:1px solid rgba(43,217,254,.15)}
+  .tag{font:10px 'Share Tech Mono',monospace;letter-spacing:1px;padding:1px 7px;border:1px solid var(--amber);color:var(--amber);text-transform:uppercase}
+
+  .diagram{margin:6px 0 8px;overflow-x:auto}
+  .diagram svg{display:block;margin:0 auto;min-width:680px}
+  .box{fill:var(--panel-2);stroke:var(--cyan-dim);stroke-width:1.4}
+  .box.cmd{stroke:var(--mag)} .box.store{stroke:var(--amber)} .box.ext{stroke:var(--green);stroke-dasharray:5 4}
+  .lbl{fill:var(--txt-bright);font:600 13px 'Chakra Petch';text-anchor:middle}
+  .sub{fill:var(--cyan-dim);font:10px 'Share Tech Mono';text-anchor:middle;letter-spacing:1px}
+  .lane-bg{fill:rgba(43,217,254,.03);stroke:var(--edge);stroke-width:1;stroke-dasharray:2 4}
+  .lane-t{fill:var(--cyan-dim);font:10px 'Share Tech Mono';letter-spacing:2px;text-transform:uppercase}
+  .wire{stroke:var(--cyan);stroke-width:1.6;fill:none;marker-end:url(#ah)}
+  .wire.event{stroke:var(--mag);stroke-dasharray:6 5;animation:dash 1s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-22}}
+  .wire-t{fill:var(--txt);font:10px 'Share Tech Mono';text-anchor:middle}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font:11px 'Share Tech Mono',monospace;letter-spacing:1px}
+  .legend span{display:flex;align-items:center;gap:7px;text-transform:uppercase;color:var(--txt)}
+  .legend i{width:22px;height:0;border-top:2px solid var(--cyan)}
+  .legend i.ev{border-top:2px dashed var(--mag)} .legend i.bx{height:12px;width:12px;border:1.5px solid var(--cyan-dim);border-top:none}
+  .legend i.bx.cmd{border-color:var(--mag)} .legend i.bx.store{border-color:var(--amber)} .legend i.bx.ext{border-color:var(--green)}
+
+  table{border-collapse:collapse;width:100%;margin:6px 0 10px;font-size:13px}
+  th,td{border:1px solid var(--edge);padding:7px 10px;text-align:left;vertical-align:top}
+  th{color:var(--cyan);font:600 11px 'Share Tech Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+  footer{font:11.5px 'Share Tech Mono',monospace;color:var(--cyan-dim);text-transform:uppercase;letter-spacing:2px;
+    border-top:1px solid var(--edge);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="tb-top"><span>HMCTS // COMMON PLATFORM</span><span>DWG CP-NOTIFY-GW-001 · STAGE 2 · REV 2026-07-10</span><span>SHEET 1/1</span></div>
+  <h1><span class="hl">cp-notification-gateway</span> — MbD topology<small>notification-notify rewrite · mi-reportdata email slice · Epics 1–3 (Milestones 1–7)</small></h1>
+
+  <section>
+    <span class="sec-id">§ 01 · Component map</span><span class="tick"></span>
+    <h2>System diagram</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 720 380" width="720" height="380" role="img" aria-label="MbD notification gateway component diagram">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2bd9fe"/></marker>
+          <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff3d81"/></marker>
+        </defs>
+        <rect class="lane-bg" x="10" y="34" width="700" height="86" rx="6"/>
+        <text class="lane-t" x="22" y="52">Upstream (out of scope) &amp; transport</text>
+        <rect class="lane-bg" x="10" y="140" width="700" height="120" rx="6"/>
+        <text class="lane-t" x="22" y="158">cp-notification-gateway (MbD Spring Boot)</text>
+        <rect class="lane-bg" x="10" y="280" width="700" height="86" rx="6"/>
+        <text class="lane-t" x="22" y="298">External providers &amp; platform</text>
+
+        <!-- upstream / transport -->
+        <g><rect class="box" x="40" y="62" width="150" height="46" rx="8"/><text class="lbl" x="115" y="82">mi-reportdata</text><text class="sub" x="115" y="98">producer · out of scope</text></g>
+        <g><rect class="box cmd" x="285" y="62" width="150" height="46" rx="8"/><text class="lbl" x="360" y="82">ASB nn-send-email</text><text class="sub" x="360" y="98">subject+body+corrId</text></g>
+        <g><rect class="box cmd" x="530" y="62" width="150" height="46" rx="8"/><text class="lbl" x="605" y="82">ReplyTo queue</text><text class="sub" x="605" y="98">none for MVP</text></g>
+
+        <!-- service internals -->
+        <g><rect class="box cmd" x="40" y="168" width="150" height="46" rx="8"/><text class="lbl" x="115" y="188">ASB consumer</text><text class="sub" x="115" y="204">dedupe · complete</text></g>
+        <g><rect class="box store" x="285" y="168" width="150" height="46" rx="8"/><text class="lbl" x="360" y="188">Postgres</text><text class="sub" x="360" y="204">notification + jobs</text></g>
+        <g><rect class="box" x="530" y="168" width="150" height="46" rx="8"/><text class="lbl" x="605" y="188">Query REST API</text><text class="sub" x="605" y="204">IDAM-authenticated</text></g>
+        <g><rect class="box" x="160" y="222" width="150" height="34" rx="8"/><text class="lbl" x="235" y="243">cp-task-manager</text></g>
+        <g><rect class="box" x="410" y="222" width="150" height="34" rx="8"/><text class="lbl" x="485" y="243">SenderFactory</text></g>
+
+        <!-- external -->
+        <g><rect class="box ext" x="40" y="306" width="150" height="46" rx="8"/><text class="lbl" x="115" y="326">Azure Blob</text><text class="sub" x="115" y="342">cross-context read</text></g>
+        <g><rect class="box ext" x="285" y="306" width="150" height="46" rx="8"/><text class="lbl" x="360" y="326">Gov.UK Notify</text><text class="sub" x="360" y="342">send + poll</text></g>
+        <g><rect class="box ext" x="530" y="306" width="150" height="46" rx="8"/><text class="lbl" x="605" y="326">O365 / APIM</text><text class="sub" x="605" y="342">Milestone 6</text></g>
+
+        <!-- wires -->
+        <path class="wire event" d="M190,85 L283,85" marker-end="url(#ahm)"/>
+        <path class="wire" d="M360,108 L360,166"/>
+        <path class="wire" d="M190,191 L283,191"/><text class="wire-t" x="237" y="184">tx: row+job</text>
+        <path class="wire" d="M285,197 C250,210 250,222 250,220"/>
+        <path class="wire" d="M310,239 L408,239"/>
+        <path class="wire" d="M485,222 C485,150 460,120 435,108"/>
+        <path class="wire" d="M470,256 C420,290 200,300 160,320"/><text class="wire-t" x="300" y="286">download</text>
+        <path class="wire" d="M500,256 C480,285 420,300 400,304"/>
+        <path class="wire" d="M560,239 C620,270 620,290 610,304"/>
+        <path class="wire event" d="M560,180 C600,150 605,120 605,110" marker-end="url(#ahm)"/><text class="wire-t" x="640" y="150">result if ReplyTo</text>
+        <path class="wire" d="M530,191 L437,191"/><text class="wire-t" x="483" y="184">read</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i class="bx cmd"></i>Messaging</span>
+      <span><i class="bx store"></i>Store</span>
+      <span><i class="bx ext"></i>External</span>
+      <span><i></i>Sync / in-process</span>
+      <span><i class="ev"></i>ASB message (async)</span>
+    </div>
+  </section>
+
+  <section>
+    <span class="sec-id">§ 02 · Pattern &amp; ownership</span><span class="tick"></span>
+    <h2>Why MbD, what it owns</h2>
+    <p>Rubric bucket: <b>MbD event-processor / integration service, thin-stateful</b>. The legacy CQRS/event-sourcing existed only to drive async tasks — a role <code>cp-task-manager</code> now fills — so the event store is dropped (no new WildFly/Java EE service). The service <b>owns the <code>notification</code> table end-to-end</b>; the cp-task-manager <code>jobs</code> table is <b>co-located in the same datasource</b> so INSERT-row + enqueue-task commit in one local transaction. No cross-context DB reads — integration is ASB messages plus one cross-context Blob read.</p>
+    <p>Invariant: <b>exactly-once observable effect</b> under at-least-once delivery — one row, one send, at most one result event — enforced by PK dedupe on ingest and a state-transition guard on every terminal transition and result publish.</p>
+  </section>
+
+  <section>
+    <span class="sec-id">§ 03 · Transport binding (physical — Stage 2)</span><span class="tick"></span>
+    <h2>ASB envelope mapping</h2>
+    <table>
+      <tr><th>Aspect</th><th>Inbound send-email-notification</th><th>Outbound notification-sent / -failed</th></tr>
+      <tr><td>subject</td><td><code>send-email-notification</code></td><td>event name <code>public.notificationnotify.events.notification-{sent,failed}</code></td></tr>
+      <tr><td>body</td><td>flat JSON = logical command fields (no <code>_metadata</code> wrapper)</td><td>flat JSON = golden-master payload</td></tr>
+      <tr><td>originator</td><td>top-level body field (routing)</td><td>n/a</td></tr>
+      <tr><td>ReplyTo</td><td>native ASB property → gates + names result queue</td><td>published to that queue</td></tr>
+      <tr><td>correlation</td><td><code>applicationProperties.correlationId</code> → MDC</td><td>same corrId propagated; <code>userId</code> on sent when present</td></tr>
+    </table>
+    <p>Decision (Q1): <b>Stage 2 authoritative, producer conforms</b>; matches the house MbD pattern in <code>cpp-mbd-idam-integration/ServiceBusEventConsumer</code>. ASB RBAC is <b>namespace-scoped</b> (queue-scope would break dynamic ReplyTo routing).</p>
+  </section>
+
+  <section>
+    <span class="sec-id">§ 04 · Parity &amp; failure taxonomy</span><span class="tick"></span>
+    <h2>Preserved behaviour (NFR-001)</h2>
+    <ul>
+      <li><b>Result events</b> byte-for-byte to the golden-master: <code>sent</code> = verbatim copy (needs subject/body/replyTo from the Notify response); <code>failed</code> = hand-built, drops <code>failedTask</code>, omits absent optionals; <code>additionalProperties:false</code>. Schemas in-repo under <code>contracts/</code>, additive-only.</li>
+      <li><b>Retry list</b> <code>60,300,1800,3600,7200,14400</code> via cp-task-manager <code>getRetryDurationsInSecs()</code>.</li>
+      <li><b>Error taxonomy</b> ported verbatim from legacy <code>FailureSelector</code>: permanent = HTTP 400 / 413, Blob 403/404; transient = HTTP 500, status-0 with known messages, and any non-permanent default.</li>
+    </ul>
+  </section>
+
+  <section>
+    <span class="sec-id">§ 05 · Design gaps carried to the gate</span><span class="tick"></span>
+    <h2>Open / routed items</h2>
+    <ul>
+      <li><span class="tag">stage-gating</span> <b>Data retention (NFR-014, UK-GDPR)</b> — no period defined. Schema supports a future purge (indexed <code>created_at</code>); enforcement deferred, <b>routed to product/DPO</b>, amend requirements before go-live.</li>
+      <li><span class="tag">platform</span> <b>OQ-1 ASO for ASB CRDs</b> — provisioning via <code>cpp-helm-chart</code> ASO CRDs vs Platform out-of-band; both paths presented, RBAC model unchanged either way. OQ-2/OQ-3 carried as assumptions.</li>
+      <li><span class="tag">verify</span> <b>Deployment specifics</b> — <code>cpp-flux-config</code>/<code>cpp-helm-chart</code>/<code>cpp-aks-deploy</code> and the ASB-sender reference repo not available locally; SAFE-DEFAULTed from <code>cpp-mbd-idam-integration</code> + reference-data UC1, verify at implementation.</li>
+      <li><span class="tag">adr</span> Two ADRs recommended: direct-to-DB-vs-CQRS; reconciliation-sweep-vs-outbox.</li>
+    </ul>
+    <p>Full detail: <code>docs/pipeline/architecture-design.md</code> (Handoff Gap Report). This artifact is what the Stage 2 human gate approves.</p>
+  </section>
+
+  <footer>STAGE 2 · ARCHITECTURE &amp; DESIGN · cp-notification-gateway · blueprint template 08 · halt for human gate</footer>
+</div>
+</body>
+</html>
