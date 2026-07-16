@@ -1,0 +1,14 @@
+{
+  "id": "${externalReference}",
+  "reference": "nces-report",
+  "content": {
+    "subject": "Your NCES extract",
+    "body": "Your report is ready. See the attached file.",
+    "from_email": "notify@example.gov.uk"
+  },
+  "template": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "version": 1,
+    "uri": "https://api.notifications.service.gov.uk/services/x/templates/x"
+  }
+}

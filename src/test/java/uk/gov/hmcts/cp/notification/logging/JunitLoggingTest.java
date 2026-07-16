@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 class JunitLoggingTest {
-
     @Test
     void junit_should_log_correct_fields() throws JacksonException {
         MDC.put("traceId", "1234-1234");
@@ -28,7 +27,7 @@ class JunitLoggingTest {
 
         assertThat(capturedFields)
                 .containsEntry("traceId", "1234-1234")
-                .containsKey("timestamp") // or keep .get("timestamp").isNotNull()
+                .containsKey("timestamp")
                 .containsEntry("logger_name", "uk.gov.hmcts.cp.notification.logging.JunitLoggingTest")
                 .containsEntry("thread_name", "Test worker")
                 .containsEntry("level", "INFO")

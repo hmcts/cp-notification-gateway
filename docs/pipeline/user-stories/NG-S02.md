@@ -48,7 +48,9 @@ in NG-S07/NG-S08.
 - [ ] AC-012: Given `check-email-status` polling returns `DELIVERED`, when the task runs, then
   `markSent()` is called and status becomes `SENT`.
 - [ ] AC-013: Given the email flow, when retry/poll intervals are inspected, then they match the legacy
-  email retry-duration list `60,300,1800,3600,7200,14400` byte-for-byte.
+  email retry-duration list `60,300,1800,3600,7200,14400` byte-for-byte — sourced from the
+  `cp.notification.retry.email-durations-secs` property (default = that legacy list, environment-overridable
+  like the legacy `@GlobalValue`), not a hard-coded constant.
 
 ## NFR links
 - NFR-001 (Behavioural parity): retry-duration list byte-equal to legacy; sender routing unchanged.
@@ -70,12 +72,19 @@ in NG-S07/NG-S08.
 - [ ] Code reviewed and approved.
 - [ ] All ACs above covered by automated tests (unit + integration).
 - [ ] **FR-010/AC-019 harness scenarios covered by this story** (folded in per the Q1 decision — this
-  story owns the core-send slice of the Testcontainers/ASB-emulator/Azurite/WireMock harness):
-  - [ ] Happy path: a message on the command queue drives blob download → Gov.Notify (WireMock stub) →
-    row `SENT`, no external calls.
-  - [ ] Atomicity: a forced failure between INSERT and task-enqueue leaves neither row nor task
-    persisted, and the ASB message is not completed.
-  - [ ] Blob 403/404: attachment download failure marks the notification FAILED, no infinite retry.
+  story owns the core-send slice of the Testcontainers/ASB-emulator/Azurite/WireMock harness, no external
+  calls). **End-to-end behaviour is verified only through BDD acceptance scenarios** (Cucumber over the
+  full emulator stack); boundary-specific outcomes stay in the relevant boundary integration test:
+  - [ ] Happy path (BDD acceptance): a command on the queue drives blob download → Gov.Notify (WireMock
+    stub) → row `SENT`.
+  - [ ] Unretrievable attachment (BDD acceptance, negative): a missing/403/404 blob fails the
+    notification (`FAILED`) and no email is sent.
+  - [ ] Atomicity (messaging boundary test, `SendEmailConsumerIntegrationTest.Atomicity`): a forced
+    failure between INSERT and task-enqueue leaves neither row nor task persisted, and the ASB message is
+    not completed.
+  - Note: the non-retry guarantee behind the blob-failure path is a boundary/task concern —
+    `AttachmentDownloaderIntegrationTest` proves 404 → non-retryable `PermanentBlobException` — so the BDD
+    scenario asserts only the business outcome (`FAILED`, no email), not the retry mechanics.
 - [ ] Accessibility audit — not applicable (no UI, NFR-015).
 - [ ] No critical or high Snyk findings introduced.
 - [ ] Deployed to and verified on sandbox (Testcontainers/emulator stack; real STE RBAC is NG-S07/S08).

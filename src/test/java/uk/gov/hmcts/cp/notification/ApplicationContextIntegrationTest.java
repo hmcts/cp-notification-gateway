@@ -1,4 +1,4 @@
-package uk.gov.hmcts.cp.notification.integration;
+package uk.gov.hmcts.cp.notification;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -9,24 +9,15 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import uk.gov.hmcts.cp.notification.integration.base.AbstractIntegrationTest;
+
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * The single wiring / sanity test: boots the full application context under the {@code test} profile
- * on a real random port (shared Postgres Testcontainer via {@link AbstractIntegrationTest}) and makes
- * real HTTP calls with {@link TestRestTemplate} — no MockMvc, so the servlet/filter chain is exercised
- * end to end.
- *
- * <p>This is also the home for technical / NFR checks — actuator health/readiness/liveness and
- * build/git info now, {@code /actuator/prometheus} and JSON-logging wiring later — grouped as
- * {@link Nested} classes rather than a separate test class per concern.
- */
 @AutoConfigureTestRestTemplate
 class ApplicationContextIntegrationTest extends AbstractIntegrationTest {
-
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -40,7 +31,6 @@ class ApplicationContextIntegrationTest extends AbstractIntegrationTest {
 
     @Nested
     class ActuatorTests {
-
         @Test
         @SuppressWarnings("unchecked")
         void health_reports_up_with_liveness_and_readiness_groups() {
