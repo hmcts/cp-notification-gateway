@@ -26,6 +26,25 @@ Shipped in this template — plain Cucumber, no Serenity:
 - **Feature files** — `src/test/resources/features/*.feature`.
 - Delete the shipped `example.feature` + `ExampleStepDefinitions` once you add real scenarios.
 
+## Boundary stubs must verify the request, not just return a response
+
+Integration and acceptance tests own both sides of every external boundary (WireMock HTTP, Azure
+Service Bus, Azurite Blob). A stub that only returns a canned response proves nothing about what the
+service actually sent. Every stub/verification helper **must assert the received request field by
+field, where feasible**:
+
+- **URL / path & method** — exact path including path variables (e.g. the Gov.Notify notification id
+  on the status poll) and the HTTP verb / queue name.
+- **Headers** — especially auth (e.g. `Authorization: Bearer <jwt>`).
+- **Body** — every field the scenario controls: scalars compared exactly; encoded payloads decoded
+  and compared to the source (e.g. base64 attachment == original file bytes); fields that must be
+  absent asserted absent (e.g. no `email_reply_to_id` when the command carries none).
+- **ASB / messaging** — when the service publishes, assert the message body and application
+  properties field by field, not just that a message arrived.
+
+Parse the captured request and assert with AssertJ; avoid loose "a call happened" checks. Reference:
+`GovUkNotifyStubService.sendEmailWasCalledWith(...)` and `deliveryStatusWasPolledFor(...)`.
+
 ## Step-definition organisation (avoid the common Cucumber pitfalls)
 
 - **No 1:1 feature→step-def file.** Organise step defs by domain concept; reuse across features.

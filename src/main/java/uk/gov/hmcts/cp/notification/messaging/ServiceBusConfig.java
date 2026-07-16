@@ -13,7 +13,7 @@ import org.springframework.util.StringUtils;
 @ConditionalOnExpression(
         "!'${cp.notification.servicebus.connection-string:}'.trim().isEmpty()"
                 + " || !'${cp.notification.servicebus.namespace:}'.trim().isEmpty()")
-class ServiceBusConfig {
+public class ServiceBusConfig {
     @Bean(destroyMethod = "close")
     ServiceBusProcessorClient sendEmailProcessorClient(
             @Value("${cp.notification.servicebus.connection-string:}") final String connectionString,

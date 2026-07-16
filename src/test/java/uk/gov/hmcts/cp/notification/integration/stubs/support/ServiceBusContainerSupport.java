@@ -1,7 +1,5 @@
 package uk.gov.hmcts.cp.notification.integration.stubs.support;
 
-import com.azure.messaging.servicebus.ServiceBusClientBuilder;
-import com.azure.messaging.servicebus.models.SubQueue;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.azure.ServiceBusEmulatorContainer;
 import org.testcontainers.containers.Network;
@@ -11,6 +9,7 @@ import org.testcontainers.utility.MountableFile;
 
 public final class ServiceBusContainerSupport {
     public static final String COMMAND_QUEUE = "nn-send-email";
+    public static final String SLICE_COMMAND_QUEUE = "nn-send-email-slice";
 
     private static final String MSSQL_IMAGE = resolveMssqlImage();
 
@@ -43,26 +42,12 @@ public final class ServiceBusContainerSupport {
     }
 
     public static void registerProperties(final DynamicPropertyRegistry registry) {
+        registerProperties(registry, COMMAND_QUEUE);
+    }
+
+    public static void registerProperties(final DynamicPropertyRegistry registry, final String commandQueue) {
         registry.add("cp.notification.servicebus.connection-string", ServiceBusContainerSupport::getConnectionString);
-        registry.add("cp.notification.servicebus.command-queue", () -> COMMAND_QUEUE);
-    }
-
-    public static ServiceBusClientBuilder.ServiceBusSenderClientBuilder aServiceBusSenderClientBuilder() {
-        return new ServiceBusClientBuilder()
-                .connectionString(getConnectionString())
-                .sender()
-                .queueName(COMMAND_QUEUE);
-    }
-
-    public static ServiceBusClientBuilder.ServiceBusReceiverClientBuilder aDeadLetterReceiver() {
-        return aServiceBusReceiverClientBuilder().subQueue(SubQueue.DEAD_LETTER_QUEUE);
-    }
-
-    private static ServiceBusClientBuilder.ServiceBusReceiverClientBuilder aServiceBusReceiverClientBuilder() {
-        return new ServiceBusClientBuilder()
-                .connectionString(getConnectionString())
-                .receiver()
-                .queueName(COMMAND_QUEUE);
+        registry.add("cp.notification.servicebus.command-queue", () -> commandQueue);
     }
 
     private static String resolveMssqlImage() {

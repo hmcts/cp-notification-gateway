@@ -3,18 +3,18 @@ package uk.gov.hmcts.cp.notification.blob;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import uk.gov.hmcts.cp.notification.integration.base.AbstractBlobIntegrationTest;
 import uk.gov.hmcts.cp.notification.integration.Fixtures;
+import uk.gov.hmcts.cp.notification.integration.stubs.support.AzuriteContainerSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static uk.gov.hmcts.cp.notification.integration.stubs.AzureBlobFileStoreStub.anAzureBlobFileStore;
 
-class AttachmentDownloaderIntegrationTest extends AbstractBlobIntegrationTest {
-    @Autowired
-    private AttachmentDownloader attachmentDownloader;
+class AttachmentDownloaderIntegrationTest {
+
+    private final AttachmentDownloader attachmentDownloader =
+            new AttachmentDownloader(new BlobClientFactory(AzuriteContainerSupport.getConnectionString()));
 
     @Test
     void downloads_attachment_bytes_for_a_valid_file_uri() {

@@ -8,3 +8,9 @@ management:
         enabled: false
   tracing:
     enabled: false
+
+# Only the shared full-application context (sanity + BDD) loads cp-task-manager's poller; the sliced
+# boundary tests don't. A fast poll drives the async job pipeline promptly in the BDD suite.
+job:
+  executor:
+    poll-interval: 200

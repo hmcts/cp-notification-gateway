@@ -26,49 +26,47 @@ tasks.named('test') {
 }
 
 tasks.register('integrationTest', Test) {
-  description = 'Runs boundary integration tests (Testcontainers).'
+  description = 'Runs boundary integration tests (sliced) and the BDD acceptance suite — both need containers.'
   group = 'verification'
   testClassesDirs = sourceSets.test.output.classesDirs
   classpath = sourceSets.test.runtimeClasspath
   useJUnitPlatform {
-    excludeEngines 'cucumber', 'junit-platform-suite'
+    includeEngines 'junit-jupiter', 'junit-platform-suite'
   }
-  include '**/*IntegrationTest*'
+  include '**/*IntegrationTest*', '**/AcceptanceTest*'
   shouldRunAfter tasks.named('test')
 }
 
-tasks.register('acceptanceTest', Test) {
-  description = 'Runs BDD acceptance scenarios (Cucumber via the AcceptanceTest suite).'
-  group = 'verification'
-  testClassesDirs = sourceSets.test.output.classesDirs
-  classpath = sourceSets.test.runtimeClasspath
-  useJUnitPlatform {
-    includeEngines 'junit-platform-suite'
-  }
-  shouldRunAfter tasks.named('integrationTest')
-}
-
 tasks.named('check') {
-  dependsOn 'integrationTest', 'acceptanceTest'
+  dependsOn 'integrationTest'
   finalizedBy 'testTimingReport'
 }
 
 tasks.register('testTimingReport') {
   group = 'verification'
   doLast {
-    println '\nTest timing by category:'
-    [test: 'unit', integrationTest: 'integration', acceptanceTest: 'acceptance'].each { dirName, label ->
+    def secsByCategory = [unit: 0d, integration: 0d, acceptance: 0d]
+    def accumulate = { String dirName ->
       def dir = layout.buildDirectory.dir("test-results/${dirName}").get().asFile
       if (!dir.exists()) return
-      def secs = dir.listFiles({ f -> f.name ==~ /TEST-.*\.xml/ } as FileFilter)
-                    .sum { (new groovy.xml.XmlSlurper().parse(it).@time.text() ?: '0') as double } ?: 0d
-      println String.format('  %-12s %6.2fs', label, secs)
+      dir.listFiles({ f -> f.name ==~ /TEST-.*\.xml/ } as FileFilter).each { f ->
+        def secs = (new groovy.xml.XmlSlurper().parse(f).@time.text() ?: '0') as double
+        def acceptance = f.name.contains('.feature') || f.name.contains('AcceptanceTest')
+        def category = dirName == 'test' ? 'unit' : (acceptance ? 'acceptance' : 'integration')
+        secsByCategory[category] += secs
+      }
+    }
+    accumulate('test')
+    accumulate('integrationTest')
+    println '\nTest timing by category:'
+    ['unit', 'integration', 'acceptance'].each { category ->
+      println String.format('  %-12s %6.2fs', category, secsByCategory[category])
     }
   }
 }
 
 tasks.named('jacocoTestReport') {
-  dependsOn tasks.named('test'), tasks.named('integrationTest'), tasks.named('acceptanceTest')
+  dependsOn tasks.named('test'), tasks.named('integrationTest')
   executionData fileTree(
     dir: layout.buildDirectory.dir("jacoco").get().asFile,
     include: ["*.exec"]

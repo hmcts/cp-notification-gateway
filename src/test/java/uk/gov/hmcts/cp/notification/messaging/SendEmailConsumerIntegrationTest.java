@@ -3,11 +3,16 @@ package uk.gov.hmcts.cp.notification.messaging;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
-import uk.gov.hmcts.cp.notification.integration.base.AbstractServiceBusIntegrationTest;
+import uk.gov.hmcts.cp.notification.integration.config.AsbConsumerSliceConfig;
 import uk.gov.hmcts.cp.notification.integration.stubs.ASBTestClient;
+import uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContainerSupport;
 import uk.gov.hmcts.cp.notification.service.NotificationIngestionService;
 
 import java.time.Duration;
@@ -25,14 +30,21 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static uk.gov.hmcts.cp.notification.integration.stubs.ASBTestClient.anAsbTestClient;
 import static uk.gov.hmcts.cp.notification.integration.testdata.SendEmailCommandFactory.aSendEmailCommand;
 
-class SendEmailConsumerIntegrationTest extends AbstractServiceBusIntegrationTest {
+@SpringBootTest(classes = AsbConsumerSliceConfig.class)
+@ActiveProfiles("test")
+class SendEmailConsumerIntegrationTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+    @DynamicPropertySource
+    static void serviceBusProperties(final DynamicPropertyRegistry registry) {
+        ServiceBusContainerSupport.registerProperties(registry, ServiceBusContainerSupport.SLICE_COMMAND_QUEUE);
+    }
 
     @MockitoBean
     private NotificationIngestionService ingestionService;
 
-    private final ASBTestClient asb = anAsbTestClient();
+    private final ASBTestClient asb = anAsbTestClient(ServiceBusContainerSupport.SLICE_COMMAND_QUEUE);
 
     @AfterEach
     void cleanUp() {

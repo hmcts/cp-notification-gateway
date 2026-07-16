@@ -1,28 +1,34 @@
 package uk.gov.hmcts.cp.notification.integration.stubs;
 
+import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverClient;
 import com.azure.messaging.servicebus.ServiceBusSenderClient;
 import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
+import com.azure.messaging.servicebus.models.SubQueue;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
 import uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContainerSupport;
 
-import static uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContainerSupport.aDeadLetterReceiver;
-import static uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContainerSupport.aServiceBusSenderClientBuilder;
-
 public final class ASBTestClient {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    private ASBTestClient() {
+    private final String queueName;
+
+    private ASBTestClient(final String queueName) {
+        this.queueName = queueName;
     }
 
     public static ASBTestClient anAsbTestClient() {
-        return new ASBTestClient();
+        return new ASBTestClient(ServiceBusContainerSupport.COMMAND_QUEUE);
+    }
+
+    public static ASBTestClient anAsbTestClient(final String queueName) {
+        return new ASBTestClient(queueName);
     }
 
     public ASBTestClient sendToCommandQueue(final SendEmailCommand command) {
@@ -42,14 +48,14 @@ public final class ASBTestClient {
         if (replyTo != null) {
             message.setReplyTo(replyTo);
         }
-        try (ServiceBusSenderClient sender = aServiceBusSenderClientBuilder().buildClient()) {
+        try (ServiceBusSenderClient sender = senderBuilder().buildClient()) {
             sender.sendMessage(message);
         }
         return this;
     }
 
     public ASBTestClient purgeDeadLetterQueue() {
-        try (ServiceBusReceiverClient dlq = aDeadLetterReceiver()
+        try (ServiceBusReceiverClient dlq = deadLetterReceiverBuilder()
                 .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
                 .buildClient()) {
             long drained;
@@ -61,8 +67,23 @@ public final class ASBTestClient {
     }
 
     public ServiceBusReceivedMessage peekDeadLetter() {
-        try (ServiceBusReceiverClient dlq = aDeadLetterReceiver().buildClient()) {
+        try (ServiceBusReceiverClient dlq = deadLetterReceiverBuilder().buildClient()) {
             return dlq.peekMessage();
         }
+    }
+
+    private ServiceBusClientBuilder.ServiceBusSenderClientBuilder senderBuilder() {
+        return new ServiceBusClientBuilder()
+                .connectionString(ServiceBusContainerSupport.getConnectionString())
+                .sender()
+                .queueName(queueName);
+    }
+
+    private ServiceBusClientBuilder.ServiceBusReceiverClientBuilder deadLetterReceiverBuilder() {
+        return new ServiceBusClientBuilder()
+                .connectionString(ServiceBusContainerSupport.getConnectionString())
+                .receiver()
+                .queueName(queueName)
+                .subQueue(SubQueue.DEAD_LETTER_QUEUE);
     }
 }
