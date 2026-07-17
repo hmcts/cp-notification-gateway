@@ -1,6 +1,7 @@
 package uk.gov.hmcts.cp.notification.messaging;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -51,49 +52,70 @@ class SendEmailConsumerIntegrationTest {
         asb.purgeDeadLetterQueue();
     }
 
-    @Test
-    void consumes_a_valid_command_delegating_to_ingestion_with_reply_to_and_completes_the_message() {
-        final UUID id = UUID.randomUUID();
+    @Nested
+    class Delegation {
 
-        asb.sendToCommandQueue(aSendEmailCommand()
-                .notificationId(id)
-                .sendToAddress("user@example.com")
-                .clientContext("mi-reportdata")
-                .build(), "nn-result-correspondence");
+        @Test
+        void consumes_a_valid_command_delegating_to_ingestion_with_reply_to_and_completes_the_message() {
+            final UUID id = UUID.randomUUID();
 
-        final ArgumentCaptor<SendEmailCommand> command = ArgumentCaptor.forClass(SendEmailCommand.class);
-        verify(ingestionService, timeout(TIMEOUT.toMillis()))
-                .ingest(command.capture(), eq("nn-result-correspondence"));
-        assertThat(command.getValue().notificationId()).isEqualTo(id);
-        assertThat(command.getValue().sendToAddress()).isEqualTo("user@example.com");
-        assertThat(command.getValue().clientContext()).isEqualTo("mi-reportdata");
+            asb.sendToCommandQueue(aSendEmailCommand()
+                    .notificationId(id)
+                    .sendToAddress("user@example.com")
+                    .clientContext("mi-reportdata")
+                    .build(), "nn-result-correspondence");
+
+            final ArgumentCaptor<SendEmailCommand> command = ArgumentCaptor.forClass(SendEmailCommand.class);
+            verify(ingestionService, timeout(TIMEOUT.toMillis()))
+                    .ingest(command.capture(), eq("nn-result-correspondence"));
+            assertThat(command.getValue().notificationId()).isEqualTo(id);
+            assertThat(command.getValue().sendToAddress()).isEqualTo("user@example.com");
+            assertThat(command.getValue().clientContext()).isEqualTo("mi-reportdata");
+        }
+
+        @Test
+        void delegates_with_no_reply_to_when_the_message_carries_none() {
+            final UUID id = UUID.randomUUID();
+
+            asb.sendToCommandQueue(aSendEmailCommand().notificationId(id).build());
+
+            verify(ingestionService, timeout(TIMEOUT.toMillis())).ingest(any(SendEmailCommand.class), isNull());
+        }
     }
 
-    @Test
-    void delegates_with_no_reply_to_when_the_message_carries_none() {
-        final UUID id = UUID.randomUUID();
+    @Nested
+    class DeadLettering {
 
-        asb.sendToCommandQueue(aSendEmailCommand().notificationId(id).build());
+        @Test
+        void dead_letters_and_does_not_delegate_an_unparseable_message() {
+            asb.sendToCommandQueue("this is not json");
 
-        verify(ingestionService, timeout(TIMEOUT.toMillis())).ingest(any(SendEmailCommand.class), isNull());
+            await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+
+            verifyNoInteractions(ingestionService);
+        }
+
+        @Test
+        void dead_letters_and_does_not_delegate_a_command_that_fails_validation() {
+            asb.sendToCommandQueue("{\"sendToAddress\":\"user@example.com\"}");
+
+            await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+
+            verifyNoInteractions(ingestionService);
+        }
     }
 
-    @Test
-    void dead_letters_and_does_not_delegate_an_invalid_command() {
-        asb.sendToCommandQueue("{\"sendToAddress\":\"user@example.com\"}");
+    @Nested
+    class Redelivery {
 
-        await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+        @Test
+        void abandons_and_redelivers_the_message_when_ingestion_fails() {
+            doThrow(new IllegalStateException("ingestion failed")).when(ingestionService).ingest(any(), any());
 
-        verifyNoInteractions(ingestionService);
-    }
+            asb.sendToCommandQueue(aSendEmailCommand().notificationId(UUID.randomUUID()).build());
 
-    @Test
-    void abandons_and_redelivers_the_message_when_ingestion_fails() {
-        doThrow(new IllegalStateException("ingestion failed")).when(ingestionService).ingest(any(), any());
-
-        asb.sendToCommandQueue(aSendEmailCommand().notificationId(UUID.randomUUID()).build());
-
-        verify(ingestionService, timeout(TIMEOUT.toMillis()).atLeast(2)).ingest(any(), any());
-        await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+            verify(ingestionService, timeout(TIMEOUT.toMillis()).atLeast(2)).ingest(any(), any());
+            await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+        }
     }
 }

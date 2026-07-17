@@ -3,6 +3,7 @@ package uk.gov.hmcts.cp.notification.task;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -51,71 +52,79 @@ class CheckEmailStatusTaskTest {
         assertThat(task.getRetryDurationsInSecs()).hasValue(LEGACY_EMAIL_RETRY_DURATIONS);
     }
 
-    @Test
-    void should_mark_sent_when_poll_returns_delivered() {
-        final UUID id = UUID.randomUUID();
-        final String reference = "notify-ref-123";
-        when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.DELIVERED);
+    @Nested
+    class WhenPollingSucceeds {
 
-        final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+        @Test
+        void should_mark_sent_when_poll_returns_delivered() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.DELIVERED);
 
-        verify(statusService).markSent(id);
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+
+            verify(statusService).markSent(id);
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
+        void should_re_poll_when_delivery_is_still_in_progress() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.SENDING);
+
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+
+            verifyNoInteractions(statusService);
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
+            assertThat(result.isShouldRetry()).isTrue();
+        }
+
+        @Test
+        void should_mark_failed_and_complete_when_poll_returns_a_terminal_failure_status() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.PERMANENT_FAILURE);
+
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+
+            verify(statusService).markFailed(eq(id), isNull(),
+                    eq("Gov.Notify responded with status 'permanent-failure'"));
+            verify(statusService, never()).markSent(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
     }
 
-    @Test
-    void should_re_poll_when_delivery_is_still_in_progress() {
-        final UUID id = UUID.randomUUID();
-        final String reference = "notify-ref-123";
-        when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.SENDING);
+    @Nested
+    class WhenPollingFails {
 
-        final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+        @Test
+        void should_re_poll_when_the_status_poll_fails_transiently() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference))
+                    .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
 
-        verifyNoInteractions(statusService);
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
-        assertThat(result.isShouldRetry()).isTrue();
-    }
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
-    @Test
-    void should_mark_failed_and_complete_when_poll_returns_a_terminal_failure_status() {
-        final UUID id = UUID.randomUUID();
-        final String reference = "notify-ref-123";
-        when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.PERMANENT_FAILURE);
+            verifyNoInteractions(statusService);
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
+            assertThat(result.isShouldRetry()).isTrue();
+        }
 
-        final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+        @Test
+        void should_mark_failed_and_complete_when_the_status_poll_fails_permanently() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference))
+                    .thenThrow(new GovNotifyException(400, "bad request", null));
 
-        verify(statusService).markFailed(eq(id), isNull(),
-                eq("Gov.Notify responded with status 'permanent-failure'"));
-        verify(statusService, never()).markSent(any());
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
-    }
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
-    @Test
-    void should_re_poll_when_the_status_poll_fails_transiently() {
-        final UUID id = UUID.randomUUID();
-        final String reference = "notify-ref-123";
-        when(govNotifyClient.checkStatus(reference))
-                .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
-
-        final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
-
-        verifyNoInteractions(statusService);
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
-        assertThat(result.isShouldRetry()).isTrue();
-    }
-
-    @Test
-    void should_mark_failed_and_complete_when_the_status_poll_fails_permanently() {
-        final UUID id = UUID.randomUUID();
-        final String reference = "notify-ref-123";
-        when(govNotifyClient.checkStatus(reference))
-                .thenThrow(new GovNotifyException(400, "bad request", null));
-
-        final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
-
-        verify(statusService).markFailed(id, 400, "bad request");
-        verify(statusService, never()).markSent(any());
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+            verify(statusService).markFailed(id, 400, "bad request");
+            verify(statusService, never()).markSent(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
     }
 
     private ExecutionInfo checkStatusJob(final UUID notificationId, final String reference) {

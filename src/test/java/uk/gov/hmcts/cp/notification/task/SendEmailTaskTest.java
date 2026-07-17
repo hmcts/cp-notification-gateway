@@ -3,6 +3,7 @@ package uk.gov.hmcts.cp.notification.task;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -74,94 +75,102 @@ class SendEmailTaskTest {
         assertThat(task.getRetryDurationsInSecs()).hasValue(LEGACY_EMAIL_RETRY_DURATIONS);
     }
 
-    @Test
-    void should_download_attachment_and_pass_it_to_the_email_sender_when_file_uri_present() {
-        final UUID id = UUID.randomUUID();
-        final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/report.csv";
-        final byte[] bytes = "report".getBytes(StandardCharsets.UTF_8);
-        when(attachmentDownloader.download(fileUri)).thenReturn(bytes);
-        when(emailSender.sendEmail(any(SendEmailCommand.class), any())).thenReturn(aSendResult().build());
+    @Nested
+    class WhenSendingSucceeds {
 
-        task.execute(sendEmailJob(id, fileUri));
+        @Test
+        void should_download_attachment_and_pass_it_to_the_email_sender_when_file_uri_present() {
+            final UUID id = UUID.randomUUID();
+            final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/report.csv";
+            final byte[] bytes = "report".getBytes(StandardCharsets.UTF_8);
+            when(attachmentDownloader.download(fileUri)).thenReturn(bytes);
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any())).thenReturn(aSendResult().build());
 
-        verify(attachmentDownloader).download(fileUri);
-        verify(emailSender).sendEmail(any(SendEmailCommand.class), attachmentCaptor.capture());
-        assertThat(attachmentCaptor.getValue()).isEqualTo(bytes);
+            task.execute(sendEmailJob(id, fileUri));
+
+            verify(attachmentDownloader).download(fileUri);
+            verify(emailSender).sendEmail(any(SendEmailCommand.class), attachmentCaptor.capture());
+            assertThat(attachmentCaptor.getValue()).isEqualTo(bytes);
+        }
+
+        @Test
+        void should_send_without_attachment_when_file_uri_is_blank() {
+            final UUID id = UUID.randomUUID();
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any())).thenReturn(aSendResult().build());
+
+            task.execute(sendEmailJob(id, ""));
+
+            verify(attachmentDownloader, never()).download(any());
+            verify(emailSender).sendEmail(any(SendEmailCommand.class), attachmentCaptor.capture());
+            assertThat(attachmentCaptor.getValue()).isNull();
+        }
+
+        @Test
+        void should_schedule_check_email_status_carrying_the_reference_in_job_data_and_not_on_the_row() {
+            final UUID id = UUID.randomUUID();
+            final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/report.csv";
+            final String externalReference = "1490dab7-2b48-4a9a-9f8a-2f0d0e2e6b11";
+            when(attachmentDownloader.download(fileUri)).thenReturn("report".getBytes(StandardCharsets.UTF_8));
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
+                    .thenReturn(aSendResult().reference(externalReference).build());
+
+            final ExecutionInfo result = task.execute(sendEmailJob(id, fileUri));
+
+            verify(executionService).executeWith(executionInfoCaptor.capture());
+            final ExecutionInfo scheduled = executionInfoCaptor.getValue();
+            assertThat(scheduled.getAssignedTaskName()).isEqualTo(CheckEmailStatusTask.TASK_NAME);
+            assertThat(scheduled.getJobData().toString()).contains(externalReference).contains(id.toString());
+
+            verifyNoInteractions(statusService);
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
     }
 
-    @Test
-    void should_send_without_attachment_when_file_uri_is_blank() {
-        final UUID id = UUID.randomUUID();
-        when(emailSender.sendEmail(any(SendEmailCommand.class), any())).thenReturn(aSendResult().build());
+    @Nested
+    class WhenSendingFails {
 
-        task.execute(sendEmailJob(id, ""));
+        @Test
+        void should_mark_failed_and_complete_without_retry_when_blob_download_is_permanently_failed() {
+            final UUID id = UUID.randomUUID();
+            final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/missing.csv";
+            when(attachmentDownloader.download(fileUri))
+                    .thenThrow(new PermanentBlobException("blob 404"));
 
-        verify(attachmentDownloader, never()).download(any());
-        verify(emailSender).sendEmail(any(SendEmailCommand.class), attachmentCaptor.capture());
-        assertThat(attachmentCaptor.getValue()).isNull();
-    }
+            final ExecutionInfo result = task.execute(sendEmailJob(id, fileUri));
 
-    @Test
-    void should_schedule_check_email_status_carrying_the_reference_in_job_data_and_not_on_the_row() {
-        final UUID id = UUID.randomUUID();
-        final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/report.csv";
-        final String externalReference = "1490dab7-2b48-4a9a-9f8a-2f0d0e2e6b11";
-        when(attachmentDownloader.download(fileUri)).thenReturn("report".getBytes(StandardCharsets.UTF_8));
-        when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
-                .thenReturn(aSendResult().reference(externalReference).build());
+            verify(statusService).markFailed(eq(id), any(), any());
+            verify(emailSender, never()).sendEmail(any(), any());
+            verify(executionService, never()).executeWith(any());
 
-        final ExecutionInfo result = task.execute(sendEmailJob(id, fileUri));
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
 
-        verify(executionService).executeWith(executionInfoCaptor.capture());
-        final ExecutionInfo scheduled = executionInfoCaptor.getValue();
-        assertThat(scheduled.getAssignedTaskName()).isEqualTo(CheckEmailStatusTask.TASK_NAME);
-        assertThat(scheduled.getJobData().toString()).contains(externalReference).contains(id.toString());
+        @Test
+        void should_mark_failed_and_complete_without_retry_when_send_fails_permanently() {
+            final UUID id = UUID.randomUUID();
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
+                    .thenThrow(new GovNotifyException(400, "bad request", null));
 
-        verifyNoInteractions(statusService);
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
-    }
+            final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
 
-    @Test
-    void should_mark_failed_and_complete_without_retry_when_blob_download_is_permanently_failed() {
-        final UUID id = UUID.randomUUID();
-        final String fileUri = "https://sa.blob.core.windows.net/mi-reportdata/missing.csv";
-        when(attachmentDownloader.download(fileUri))
-                .thenThrow(new PermanentBlobException("blob 404"));
+            verify(statusService).markFailed(eq(id), eq(400), eq("bad request"));
+            verify(executionService, never()).executeWith(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
 
-        final ExecutionInfo result = task.execute(sendEmailJob(id, fileUri));
+        @Test
+        void should_retry_when_send_fails_transiently() {
+            final UUID id = UUID.randomUUID();
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
+                    .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
 
-        verify(statusService).markFailed(eq(id), any(), any());
-        verify(emailSender, never()).sendEmail(any(), any());
-        verify(executionService, never()).executeWith(any());
+            final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
 
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
-    }
-
-    @Test
-    void should_mark_failed_and_complete_without_retry_when_send_fails_permanently() {
-        final UUID id = UUID.randomUUID();
-        when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
-                .thenThrow(new GovNotifyException(400, "bad request", null));
-
-        final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
-
-        verify(statusService).markFailed(eq(id), eq(400), eq("bad request"));
-        verify(executionService, never()).executeWith(any());
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
-    }
-
-    @Test
-    void should_retry_when_send_fails_transiently() {
-        final UUID id = UUID.randomUUID();
-        when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
-                .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
-
-        final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
-
-        verify(statusService, never()).markFailed(any(), any(), any());
-        verify(executionService, never()).executeWith(any());
-        assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
-        assertThat(result.isShouldRetry()).isTrue();
+            verify(statusService, never()).markFailed(any(), any(), any());
+            verify(executionService, never()).executeWith(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
+            assertThat(result.isShouldRetry()).isTrue();
+        }
     }
 
     private ExecutionInfo sendEmailJob(final UUID notificationId, final String fileUri) {

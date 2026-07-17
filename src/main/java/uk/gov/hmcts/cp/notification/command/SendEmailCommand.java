@@ -1,5 +1,6 @@
 package uk.gov.hmcts.cp.notification.command;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -18,7 +19,7 @@ public record SendEmailCommand(
 
         String fileUri,
 
-        String replyToAddress,
+        @Email String replyToAddress,
 
         UUID replyToAddressId,
 
