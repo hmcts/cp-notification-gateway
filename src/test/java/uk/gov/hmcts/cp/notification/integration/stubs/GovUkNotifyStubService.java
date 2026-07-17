@@ -3,14 +3,10 @@ package uk.gov.hmcts.cp.notification.integration.stubs;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.springframework.test.context.DynamicPropertyRegistry;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
-import java.util.Map;
-import uk.gov.hmcts.cp.notification.integration.Fixtures;
 import uk.gov.hmcts.cp.notification.integration.stubs.support.WireMockSupport;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -20,7 +16,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.Base64.getMimeDecoder;
+import static java.util.Map.of;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.cp.notification.integration.Fixtures.load;
 
 public final class GovUkNotifyStubService {
     private static final String SEND_EMAIL_PATH = "/v2/notifications/email";
@@ -54,7 +54,7 @@ public final class GovUkNotifyStubService {
         return this;
     }
 
-    public GovUkNotifyStubService sendEmailRequestMatches(final String expectedRequestJson) {
+    public GovUkNotifyStubService sendEmailRequestMatches(final String expectedRequestJson, final byte[] expectedAttachment) {
         final List<LoggedRequest> requests = WireMockSupport.wiremockServer()
                 .findAll(postRequestedFor(urlPathEqualTo(SEND_EMAIL_PATH)));
         assertThat(requests).as("exactly one send-email request reaches Gov.UK Notify").hasSize(1);
@@ -62,19 +62,13 @@ public final class GovUkNotifyStubService {
         final LoggedRequest request = requests.get(0);
         assertThat(request.getHeader("Authorization")).as("JWT bearer auth").matches("Bearer .+");
 
-        final JsonNode actual = normaliseAttachmentEncoding(MAPPER.readTree(request.getBodyAsString()));
-        final JsonNode expected = normaliseAttachmentEncoding(MAPPER.readTree(expectedRequestJson));
-        assertThat(actual).as("send-email request payload matches the expected contract").isEqualTo(expected);
-        return this;
-    }
+        final String body = request.getBodyAsString();
+        assertThatJson(body).as("send-email request payload matches the expected contract").isEqualTo(expectedRequestJson);
 
-    private static JsonNode normaliseAttachmentEncoding(final JsonNode body) {
-        final JsonNode file = body.path("personalisation").path("material_url").path("file");
-        if (file.isTextual()) {
-            ((ObjectNode) body.get("personalisation").get("material_url"))
-                    .put("file", file.asString().replaceAll("\\s", ""));
-        }
-        return body;
+        final String encodedAttachment = MAPPER.readTree(body).path("personalisation").path("material_url").path("file").asString();
+        assertThat(getMimeDecoder().decode(encodedAttachment))
+                .as("attachment bytes delivered to Gov.UK Notify").isEqualTo(expectedAttachment);
+        return this;
     }
 
     public GovUkNotifyStubService deliveryStatusWasPolledFor(final String externalReference) {
@@ -95,6 +89,6 @@ public final class GovUkNotifyStubService {
         return aResponse()
                 .withStatus(status)
                 .withHeader("Content-Type", "application/json")
-                .withBody(Fixtures.load(fixture, Map.of("externalReference", externalReference)));
+                .withBody(load(fixture, of("externalReference", externalReference)));
     }
 }

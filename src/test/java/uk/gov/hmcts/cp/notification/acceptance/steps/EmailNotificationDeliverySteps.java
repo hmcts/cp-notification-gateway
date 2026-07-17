@@ -7,19 +7,19 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import uk.gov.hmcts.cp.notification.integration.Fixtures;
 import uk.gov.hmcts.cp.notification.integration.repository.JobTestRepository;
 import uk.gov.hmcts.cp.notification.integration.repository.NotificationTestRepository;
 import uk.gov.hmcts.cp.notification.integration.stubs.GovUkNotifyStubService;
 import uk.gov.hmcts.cp.notification.integration.stubs.support.WireMockSupport;
 
-import java.time.Duration;
-import java.util.Base64;
-import java.util.Map;
-import java.util.UUID;
-
+import static java.time.Duration.ofSeconds;
+import static java.util.Map.of;
+import static java.util.UUID.fromString;
+import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static uk.gov.hmcts.cp.notification.integration.Fixtures.load;
+import static uk.gov.hmcts.cp.notification.integration.Fixtures.loadBytes;
 import static uk.gov.hmcts.cp.notification.integration.stubs.ASBTestClient.anAsbTestClient;
 import static uk.gov.hmcts.cp.notification.integration.stubs.AzureBlobFileStoreStub.anAzureBlobFileStore;
 import static uk.gov.hmcts.cp.notification.integration.stubs.GovUkNotifyStubService.aGovUkNotifyService;
@@ -46,10 +46,10 @@ public class EmailNotificationDeliverySteps {
 
     @Given("a send-email-notification command for a recipient with an attachment")
     public void a_send_email_notification_command_for_a_recipient_with_an_attachment() {
-        notificationId = UUID.randomUUID().toString();
-        templateId = UUID.randomUUID().toString();
-        externalReference = UUID.randomUUID().toString();
-        attachmentBytes = Fixtures.loadBytes("attachments/report.csv");
+        notificationId = randomUUID().toString();
+        templateId = randomUUID().toString();
+        externalReference = randomUUID().toString();
+        attachmentBytes = loadBytes("attachments/report.csv");
 
         final String blobName = "report-" + notificationId + ".csv";
         final String fileUri = anAzureBlobFileStore()
@@ -60,7 +60,7 @@ public class EmailNotificationDeliverySteps {
                 .sendEmailNotificationWillReturnSuccess(externalReference)
                 .getNotificationStatusWillReturnSuccess(externalReference);
 
-        commandJson = Fixtures.load("commands/send-email-with-attachment.json", Map.of(
+        commandJson = load("commands/send-email-with-attachment.json", of(
                 "notificationId", notificationId,
                 "templateId", templateId,
                 "fileUri", fileUri));
@@ -68,12 +68,12 @@ public class EmailNotificationDeliverySteps {
 
     @Given("a send-email-notification command whose attachment is missing")
     public void a_send_email_notification_command_whose_attachment_is_missing() {
-        notificationId = UUID.randomUUID().toString();
-        templateId = UUID.randomUUID().toString();
+        notificationId = randomUUID().toString();
+        templateId = randomUUID().toString();
 
         final String fileUri = anAzureBlobFileStore().uriOf("missing-" + notificationId + ".csv");
 
-        commandJson = Fixtures.load("commands/send-email-missing-attachment.json", Map.of(
+        commandJson = load("commands/send-email-missing-attachment.json", of(
                 "notificationId", notificationId,
                 "templateId", templateId,
                 "fileUri", fileUri));
@@ -86,24 +86,23 @@ public class EmailNotificationDeliverySteps {
 
     @Then("the email is sent via the Gov.UK Notify provider")
     public void the_email_is_sent_via_the_gov_uk_notify_provider() {
-        final String expectedRequest = Fixtures.load("gov-notify/expected-send-email-request.json", Map.of(
+        final String expectedRequest = load("gov-notify/expected-send-email-request.json", of(
                 "templateId", templateId,
-                "notificationId", notificationId,
-                "attachmentBase64", Base64.getEncoder().encodeToString(attachmentBytes)));
-        await().atMost(Duration.ofSeconds(60))
-                .untilAsserted(() -> govUkNotify.sendEmailRequestMatches(expectedRequest));
+                "notificationId", notificationId));
+        await().atMost(ofSeconds(60))
+                .untilAsserted(() -> govUkNotify.sendEmailRequestMatches(expectedRequest, attachmentBytes));
     }
 
     @Then("the delivery status is polled from the provider")
     public void the_delivery_status_is_polled_from_the_provider() {
-        await().atMost(Duration.ofSeconds(60))
+        await().atMost(ofSeconds(60))
                 .untilAsserted(() -> govUkNotify.deliveryStatusWasPolledFor(externalReference));
     }
 
     @Then("the notification is recorded as {word}")
     public void the_notification_is_recorded_as(final String status) {
-        await().atMost(Duration.ofSeconds(60)).untilAsserted(() ->
-                assertThat(notifications.findById(UUID.fromString(notificationId)))
+        await().atMost(ofSeconds(60)).untilAsserted(() ->
+                assertThat(notifications.findById(fromString(notificationId)))
                         .hasValueSatisfying(row -> assertThat(row.getStatus()).isEqualTo(status)));
     }
 

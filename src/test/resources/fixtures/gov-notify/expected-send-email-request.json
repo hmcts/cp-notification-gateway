@@ -5,7 +5,7 @@
   "personalisation": {
     "recipient_name": "Alex Morgan",
     "material_url": {
-      "file": "${attachmentBase64}",
+      "file": "${json-unit.ignore}",
       "is_csv": true
     }
   }
