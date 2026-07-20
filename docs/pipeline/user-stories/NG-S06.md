@@ -32,8 +32,7 @@ during implementation of this story, per FR-012.
 
 ## Notes / open questions
 - **FR/AC traceability:** FR-012 → AC-021.
-- **Reference-only Jira key:** FR-012 → PEG-3363. Vertical-slice ticket for NG-S06 will be created
-  later, once the user approves ticket creation.
+- **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
 - Depends on NG-S02 (Gov.Notify send path) to have something to stub; the O365 half of this story
   depends on NG-S10 (Office 365 send path) existing, so may need to land in two increments if NG-S10
   is not yet complete — flagged for sequencing at sprint planning, not a blocking clarification.

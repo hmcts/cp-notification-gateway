@@ -96,10 +96,7 @@ in NG-S07/NG-S08.
   403/404 sub-scenarios); the redelivery/idempotency and retry sub-scenarios of AC-019 are covered via
   NG-S12 and NG-S11 respectively (see `_index.md` for the full breakdown).
 - **Jira story ticket: [PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373)** — created and linked to
-  epic PEG-3350 (labels `claude-generated`, `needs-review`). The per-FR keys reserved in
-  `requirements.md`'s Jira column remain **reference-only** for traceability: FR-003 → PEG-3353; FR-004 →
-  PEG-3355 (PEG-3354 skipped/unused, not an error); FR-005 → PEG-3356; FR-006 → PEG-3357; FR-010 →
-  PEG-3361 (harness, folded into this story's DoD).
+  epic PEG-3350 (labels `claude-generated`, `needs-review`).
 - Recommend scaffolding the `SenderFactory` routing seam (with a stubbed Office 365 branch) as part of
   this story's implementation, per architecture-design.md Risk #2 — even though the live O365 behaviour
   (FR-018/019) ships in NG-S10 — so the interface exists before NG-S10 starts.

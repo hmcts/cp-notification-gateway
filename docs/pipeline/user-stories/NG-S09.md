@@ -41,7 +41,6 @@ Milestone 5 deployment").
 
 ## Notes / open questions
 - **FR/AC traceability:** FR-016 (no dedicated AC), FR-017 → AC-026.
-- **Reference-only Jira keys:** FR-016 → PEG-3367; FR-017 → PEG-3368. Vertical-slice ticket for NG-S09
-  will be created later, once the user approves ticket creation.
+- **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
 - Depends on NG-S08 (identity/RBAC/CSI secret) being provisioned first; both are ops/infra stories and
   may be sequenced together at sprint planning.

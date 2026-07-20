@@ -44,9 +44,7 @@ a Platform out-of-band request per OQ-1), distinct from the application code in 
 
 ## Notes / open questions
 - **FR/AC traceability:** FR-014, FR-015 → AC-024, AC-025.
-- **Reference-only Jira keys:** FR-014 → PEG-3365; FR-015 → PEG-3366. Note these are currently two
-  separate reserved keys for what this story treats as one bundled infra outcome; reconciliation (merge
-  vs. keep linked) is deferred to the later, separately-approved ticket-creation step.
+- **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
 - **Inherited open item (Platform-owned, not blocking this story's docs):** OQ-1 — whether the
   cluster's ASO version can provision ASB namespaces/queues and role-assignment CRDs directly
   (`cpp-helm-chart`) or whether this requires a Platform out-of-band request. Both provisioning paths

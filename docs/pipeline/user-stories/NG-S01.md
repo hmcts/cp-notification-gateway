@@ -61,9 +61,7 @@ harness"); it is verified transitively by every later story's tests passing agai
 ## Notes / open questions
 - **FR/AC traceability:** FR-001 (no dedicated AC), FR-002 → AC-001, AC-001a.
 - **Jira story ticket: [PEG-3372](https://tools.hmcts.net/jira/browse/PEG-3372)** — created and linked to
-  epic PEG-3350 (labels `claude-generated`, `needs-review`). The per-FR keys reserved in
-  `requirements.md`'s Jira column (FR-001 → PEG-3351; FR-002 → PEG-3352) remain **reference-only** for
-  traceability.
+  epic PEG-3350 (labels `claude-generated`, `needs-review`).
 - **ADR flag:** Stage 2 (`architecture-design.md`, Follow-ups) recommends drafting ADR
   *"Direct-to-DB + cp-task-manager replaces CQRS/Event-Sourcing for notification-notify"* — this
   service-wide pattern decision is foundational to this story and should be drafted alongside it

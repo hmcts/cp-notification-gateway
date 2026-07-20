@@ -38,8 +38,7 @@ but the pipeline itself is buildable/testable as soon as the scaffold (NG-S01) e
 
 ## Notes / open questions
 - **FR/AC traceability:** FR-011 → AC-020.
-- **Reference-only Jira key:** FR-011 → PEG-3362. Vertical-slice ticket for NG-S05 will be created
-  later, once the user approves ticket creation.
+- **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
 - Workflows are template-shipped (`.github/workflows/*`) — this story is primarily about enabling and
   verifying them, not hand-rolling CI logic.
 - Depends on NG-S01 (a buildable repo) but not on any other feature story.

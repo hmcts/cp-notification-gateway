@@ -69,8 +69,7 @@ NG-S02.
 - **FR/AC traceability:** FR-007 → AC-014, AC-015; FR-008 → AC-016. **FR-010 → AC-019** partially
   covered here (result-queue-message sub-scenario) — see `_index.md` for the full breakdown across
   NG-S02/NG-S03/NG-S10/NG-S11/NG-S12.
-- **Reference-only Jira keys:** FR-007 → PEG-3358; FR-008 → PEG-3359. Vertical-slice tickets for NG-S03
-  will be created later, once the user approves ticket creation.
+- **Jira story ticket:** created as [PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382).
 - **Schema-owning location (Q6, resolved by Stage 2):** the two JSON schemas live in-repo under
   `contracts/` in `cp-notification-gateway`, additive-only evolution; promote to a shared registry only
   when a real originator opts in.

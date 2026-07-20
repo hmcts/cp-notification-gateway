@@ -49,9 +49,7 @@ this backlog ships an unauthenticated PII-returning endpoint**.
 ## Notes / open questions
 - **FR/AC traceability:** FR-009 → AC-017, AC-018; FR-024 → AC-039 (pulled forward per Q3, delivered
   alongside FR-009 in this same story rather than deferred to Milestone 7).
-- **Reference-only Jira key:** FR-009 → PEG-3360. FR-024 has **no** Jira key reserved yet in
-  requirements.md's Jira column (blank — it originally sat in Milestone 7 before being pulled forward).
-  Vertical-slice tickets for NG-S04 will be created later, once the user approves ticket creation.
+- **Jira story ticket:** created as [PEG-3383](https://tools.hmcts.net/jira/browse/PEG-3383).
 - OpenAPI spec lives in the companion `api-notification-gateway` repo (API-first, per Q6); this story's
   DoD assumes that repo/spec exists or is created alongside it.
 - Depends on NG-S01 (schema) only; does not require NG-S02/NG-S03 to be complete (can be tested with

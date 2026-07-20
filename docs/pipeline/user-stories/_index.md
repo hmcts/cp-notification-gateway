@@ -5,7 +5,10 @@
 > `docs/pipeline/cp-task-manager-stale-lock-gap.md`,
 > `docs/pipeline/artifacts/001-notification-gateway-blueprint.html`. **Human gate — not approved until
 > the user confirms.** Story IDs (`NG-S01`…`NG-S13`) are local placeholders. **Jira tickets created so
-> far (epic PEG-3350): NG-S01 → PEG-3372, NG-S02 → PEG-3373** (labels `claude-generated`/`needs-review`);
+> far (epic [PEG-3350](https://tools.hmcts.net/jira/browse/PEG-3350)): NG-S01 →
+> [PEG-3372](https://tools.hmcts.net/jira/browse/PEG-3372), NG-S02 → [PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373),
+> NG-S03 → [PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382), NG-S04 →
+> [PEG-3383](https://tools.hmcts.net/jira/browse/PEG-3383)** (labels `claude-generated`/`needs-review`);
 > the remaining stories' tickets are created in later, separately-approved steps.
 >
 > FRs are numbered in milestone/build order in `requirements.md`, not shippable-slice order. Per the
@@ -47,31 +50,27 @@
 Every AC-001…AC-039 in `requirements.md` (AC-034 does not exist — no FR/AC gap, just an unused number)
 lands in exactly one story or is explicitly covered via DoD (FR-010/AC-019). No orphaned FR or AC.
 
-## Story list (with reference-only Jira keys from requirements.md's Jira column)
+## Story list
 
-| Story | Title | FRs | Jira ticket (created) / reference-only keys |
+| Story | Title | FRs | Jira ticket |
 |---|---|---|---|
-| [NG-S01](./NG-S01.md) | Service scaffold and notification/jobs schema | FR-001, FR-002 | **[PEG-3372](https://tools.hmcts.net/jira/browse/PEG-3372)** (created) · ref-only: PEG-3351, PEG-3352 |
-| [NG-S02](./NG-S02.md) | End-to-end email send (ingest, attachment, Gov.Notify, poll, retry) | FR-003, FR-004, FR-005, FR-006 | **[PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373)** (created) · ref-only: PEG-3353, PEG-3355, PEG-3356, PEG-3357 |
-| [NG-S03](./NG-S03.md) | ReplyTo-gated result event with legacy parity | FR-007, FR-008 | PEG-3358, PEG-3359 |
-| [NG-S04](./NG-S04.md) | Secured read (query) API | FR-009, FR-024 | PEG-3360 (FR-024: none reserved) |
-| [NG-S05](./NG-S05.md) | CI validation pipeline (GitHub Actions) | FR-011 | PEG-3362 |
-| [NG-S06](./NG-S06.md) | STE provider simulators/stubs | FR-012 | PEG-3363 |
-| [NG-S07](./NG-S07.md) | Managed-identity RBAC for ASB (application code) | FR-013 | PEG-3364 |
-| [NG-S08](./NG-S08.md) | Provision identity + ASB namespace/queues + RBAC (infra) | FR-014, FR-015 | PEG-3365, PEG-3366 |
-| [NG-S09](./NG-S09.md) | Provision STE Postgres + Flux CD deploy | FR-016, FR-017 | PEG-3367, PEG-3368 |
-| [NG-S10](./NG-S10.md) | Office 365 routing and immediate-delivery send | FR-018, FR-019 | none reserved |
-| [NG-S11](./NG-S11.md) | Failure handling: retry, permanent failure, DLQ | FR-020 | none reserved |
-| [NG-S12](./NG-S12.md) | At-least-once safety: state guard + recover-by-reference | FR-022 | none reserved |
-| [NG-S13](./NG-S13.md) | Observability: logs, metrics, DLQ-depth | FR-023 | none reserved |
+| [NG-S01](./NG-S01.md) | Service scaffold and notification/jobs schema | FR-001, FR-002 | **[PEG-3372](https://tools.hmcts.net/jira/browse/PEG-3372)** (created) |
+| [NG-S02](./NG-S02.md) | End-to-end email send (ingest, attachment, Gov.Notify, poll, retry) | FR-003, FR-004, FR-005, FR-006 | **[PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373)** (created) |
+| [NG-S03](./NG-S03.md) | ReplyTo-gated result event with legacy parity | FR-007, FR-008 | **[PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382)** (created) |
+| [NG-S04](./NG-S04.md) | Secured read (query) API | FR-009, FR-024 | **[PEG-3383](https://tools.hmcts.net/jira/browse/PEG-3383)** (created) |
+| [NG-S05](./NG-S05.md) | CI validation pipeline (GitHub Actions) | FR-011 | not yet created |
+| [NG-S06](./NG-S06.md) | STE provider simulators/stubs | FR-012 | not yet created |
+| [NG-S07](./NG-S07.md) | Managed-identity RBAC for ASB (application code) | FR-013 | not yet created |
+| [NG-S08](./NG-S08.md) | Provision identity + ASB namespace/queues + RBAC (infra) | FR-014, FR-015 | not yet created |
+| [NG-S09](./NG-S09.md) | Provision STE Postgres + Flux CD deploy | FR-016, FR-017 | not yet created |
+| [NG-S10](./NG-S10.md) | Office 365 routing and immediate-delivery send | FR-018, FR-019 | not yet created |
+| [NG-S11](./NG-S11.md) | Failure handling: retry, permanent failure, DLQ | FR-020 | not yet created |
+| [NG-S12](./NG-S12.md) | At-least-once safety: state guard + recover-by-reference | FR-022 | not yet created |
+| [NG-S13](./NG-S13.md) | Observability: logs, metrics, DLQ-depth | FR-023 | not yet created |
 
-Note on PEG-3354: skipped/unused in `requirements.md`'s Jira column between FR-003 (PEG-3353) and
-FR-004 (PEG-3355) — not an error introduced here, carried as-is from the source document.
-
-Note on FR-010 (PEG-3361): reserved for the integration-test-harness FR, which per the coordinator's
-Q1 decision has no dedicated story in this backlog — its scenarios are folded into the DoD of NG-S02,
-NG-S03, NG-S10, NG-S11, NG-S12 (see mapping table above). PEG-3361 is not attached to any single story
-file; it is referenced in each of those five stories' Notes sections.
+Note on FR-010: the integration-test-harness FR has no dedicated story in this backlog — per the
+coordinator's Q1 decision its scenarios are folded into the DoD of NG-S02, NG-S03, NG-S10, NG-S11,
+NG-S12 (see mapping table above).
 
 ## ADR flags raised in this pass
 - **NG-S01**: *"Direct-to-DB + cp-task-manager replaces CQRS/Event-Sourcing for notification-notify"*

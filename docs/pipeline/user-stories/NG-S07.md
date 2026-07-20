@@ -41,8 +41,7 @@ string locally); this story is about proving the non-emulator, production auth p
 
 ## Notes / open questions
 - **FR/AC traceability:** FR-013 → AC-022, AC-023.
-- **Reference-only Jira key:** FR-013 → PEG-3364. Vertical-slice ticket for NG-S07 will be created
-  later, once the user approves ticket creation.
+- **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
 - Verification of AC-023 (namespace-scope RBAC) is only fully provable once NG-S08 has provisioned the
   real identity in STE — this story's code can be reviewed/merged independently, but its DoD's
   "deployed to and verified" step is naturally sequenced after NG-S08.
