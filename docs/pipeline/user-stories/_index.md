@@ -4,18 +4,29 @@
 > `docs/pipeline/requirements.md`, `docs/pipeline/legacy-result-event-contract.md`,
 > `docs/pipeline/cp-task-manager-stale-lock-gap.md`,
 > `docs/pipeline/artifacts/001-notification-gateway-blueprint.html`. **Human gate — not approved until
-> the user confirms.** Story IDs (`NG-S01`…`NG-S13`) are local placeholders. **Jira tickets created so
-> far (epic [PEG-3350](https://tools.hmcts.net/jira/browse/PEG-3350)): NG-S01 →
-> [PEG-3372](https://tools.hmcts.net/jira/browse/PEG-3372), NG-S02 → [PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373),
-> NG-S03 → [PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382), NG-S04 →
-> [PEG-3383](https://tools.hmcts.net/jira/browse/PEG-3383)** (labels `claude-generated`/`needs-review`);
-> the remaining stories' tickets are created in later, separately-approved steps.
+> the user confirms.** Story IDs (`NG-S01`…`NG-S13`) are local placeholders. **All 13 stories now have Jira tickets under epic
+> [PEG-3350](https://tools.hmcts.net/jira/browse/PEG-3350)** (labels `claude-generated`/`needs-review`) —
+> see the per-story keys in the Story list table below. Tickets carry the Acceptance criteria and
+> Out-of-scope sections only; the full story detail (user story, background, NFR links, DoD, notes)
+> lives in the per-story `.md` files here, which remain the source of truth.
 >
 > FRs are numbered in milestone/build order in `requirements.md`, not shippable-slice order. Per the
 > Stage 3 re-slice rule, layered FRs that are not independently valuable/testable on their own (e.g.
 > ingest → attachment download → send → poll, or O365 routing → O365 send) are bundled into one
 > vertical story; FRs that carry separable value (e.g. result-event publish vs. the core send) are
 > split into their own story. See each story's "Notes / open questions" for the INVEST rationale.
+
+## Legacy parity principle (standing rule)
+
+Every story that implements **business logic** ported from `cpp-context-notification-notify` MUST
+maintain **behavioural parity** with the legacy service (NFR-001) — same inbound/outbound contracts,
+same email/letter/bounce/POCA semantics, same retry/poll timings and failure classification. Where a
+field or behaviour originates in the legacy code, the story cites the legacy source and pins parity in
+an AC or DoD item (e.g. NG-S02/AC-013 retry list byte-for-byte; NG-S03/AC-016 golden-master payload
+with capture-at-send/carry-in-envelope field sourcing; NG-S11 `FailureSelector` taxonomy). Any
+**intentional deviation** from legacy (e.g. NG-S12's recover-by-reference guard, which legacy lacks)
+MUST be called out explicitly and backed by an ADR. Pure infrastructure/enabler stories (CI,
+identity/RBAC, provisioning, deploy — NG-S05/07/08/09) carry no behavioural-parity obligation.
 
 ## FR → Story → AC mapping
 
@@ -58,15 +69,15 @@ lands in exactly one story or is explicitly covered via DoD (FR-010/AC-019). No 
 | [NG-S02](./NG-S02.md) | End-to-end email send (ingest, attachment, Gov.Notify, poll, retry) | FR-003, FR-004, FR-005, FR-006 | **[PEG-3373](https://tools.hmcts.net/jira/browse/PEG-3373)** (created) |
 | [NG-S03](./NG-S03.md) | ReplyTo-gated result event with legacy parity | FR-007, FR-008 | **[PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382)** (created) |
 | [NG-S04](./NG-S04.md) | Secured read (query) API | FR-009, FR-024 | **[PEG-3383](https://tools.hmcts.net/jira/browse/PEG-3383)** (created) |
-| [NG-S05](./NG-S05.md) | CI validation pipeline (GitHub Actions) | FR-011 | not yet created |
-| [NG-S06](./NG-S06.md) | STE provider simulators/stubs | FR-012 | not yet created |
-| [NG-S07](./NG-S07.md) | Managed-identity RBAC for ASB (application code) | FR-013 | not yet created |
-| [NG-S08](./NG-S08.md) | Provision identity + ASB namespace/queues + RBAC (infra) | FR-014, FR-015 | not yet created |
-| [NG-S09](./NG-S09.md) | Provision STE Postgres + Flux CD deploy | FR-016, FR-017 | not yet created |
-| [NG-S10](./NG-S10.md) | Office 365 routing and immediate-delivery send | FR-018, FR-019 | not yet created |
-| [NG-S11](./NG-S11.md) | Failure handling: retry, permanent failure, DLQ | FR-020 | not yet created |
-| [NG-S12](./NG-S12.md) | At-least-once safety: state guard + recover-by-reference | FR-022 | not yet created |
-| [NG-S13](./NG-S13.md) | Observability: logs, metrics, DLQ-depth | FR-023 | not yet created |
+| [NG-S05](./NG-S05.md) | CI validation pipeline (GitHub Actions) | FR-011 | **[PEG-3384](https://tools.hmcts.net/jira/browse/PEG-3384)** (created) |
+| [NG-S06](./NG-S06.md) | STE provider simulators/stubs | FR-012 | **[PEG-3390](https://tools.hmcts.net/jira/browse/PEG-3390)** (created) |
+| [NG-S07](./NG-S07.md) | Managed-identity RBAC for ASB (application code) | FR-013 | **[PEG-3391](https://tools.hmcts.net/jira/browse/PEG-3391)** (created) |
+| [NG-S08](./NG-S08.md) | Provision identity + ASB namespace/queues + RBAC (infra) | FR-014, FR-015 | **[PEG-3385](https://tools.hmcts.net/jira/browse/PEG-3385)** (created) |
+| [NG-S09](./NG-S09.md) | Provision STE Postgres + Flux CD deploy | FR-016, FR-017 | **[PEG-3392](https://tools.hmcts.net/jira/browse/PEG-3392)** (created) |
+| [NG-S10](./NG-S10.md) | Office 365 routing and immediate-delivery send | FR-018, FR-019 | **[PEG-3386](https://tools.hmcts.net/jira/browse/PEG-3386)** (created) |
+| [NG-S11](./NG-S11.md) | Failure handling: retry, permanent failure, DLQ | FR-020 | **[PEG-3387](https://tools.hmcts.net/jira/browse/PEG-3387)** (created) |
+| [NG-S12](./NG-S12.md) | At-least-once safety: state guard + recover-by-reference | FR-022 | **[PEG-3388](https://tools.hmcts.net/jira/browse/PEG-3388)** (created) |
+| [NG-S13](./NG-S13.md) | Observability: logs, metrics, DLQ-depth | FR-023 | **[PEG-3389](https://tools.hmcts.net/jira/browse/PEG-3389)** (created) |
 
 Note on FR-010: the integration-test-harness FR has no dedicated story in this backlog — per the
 coordinator's Q1 decision its scenarios are folded into the DoD of NG-S02, NG-S03, NG-S10, NG-S11,
@@ -123,8 +134,11 @@ Inputs the test-engineer stage must read (explicit paths — Stage 4 reads only 
 - FR-010/AC-019 has no dedicated story — its five sub-scenarios are Definition-of-Done items inside
   NG-S02/NG-S03/NG-S10/NG-S11/NG-S12; Stage 4 should write test specs against those DoD items directly,
   not look for a standalone "harness" story.
-- No Jira tickets exist yet for any of these 13 stories — test-spec authoring should reference story
-  IDs (`NG-S01`…`NG-S13`), not Jira keys, until ticket creation is separately approved.
+- All 13 stories now have Jira tickets (NG-S01→PEG-3372, S02→PEG-3373, S03→PEG-3382, S04→PEG-3383,
+  S05→PEG-3384, S06→PEG-3390, S07→PEG-3391, S08→PEG-3385, S09→PEG-3392, S10→PEG-3386, S11→PEG-3387,
+  S12→PEG-3388, S13→PEG-3389), all under epic PEG-3350 with labels `claude-generated`/`needs-review`;
+  test-spec authoring may reference either the story IDs or the Jira keys. Tickets hold ACs +
+  Out-of-scope only — the `.md` files remain the full-detail source of truth.
 - OQ-4 (cp-task-manager stale-lock gap) is a risk note inside NG-S12 only — do not write a test spec
   attempting to verify a fix for it; it is out of this service's control.
 - The data-retention open item has no AC — do not invent one; it stays untested until product/DPO

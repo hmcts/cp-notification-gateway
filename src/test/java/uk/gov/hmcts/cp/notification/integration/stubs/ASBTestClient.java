@@ -54,6 +54,17 @@ public final class ASBTestClient {
         return this;
     }
 
+    public ServiceBusReceivedMessage receiveMessage(final Duration timeout) {
+        try (ServiceBusReceiverClient receiver = new ServiceBusClientBuilder()
+                .connectionString(ServiceBusContainerSupport.getConnectionString())
+                .receiver()
+                .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
+                .queueName(queueName)
+                .buildClient()) {
+            return receiver.receiveMessages(1, timeout).stream().findFirst().orElse(null);
+        }
+    }
+
     public ASBTestClient purgeDeadLetterQueue() {
         try (ServiceBusReceiverClient dlq = deadLetterReceiverBuilder()
                 .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)

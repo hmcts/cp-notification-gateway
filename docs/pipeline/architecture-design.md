@@ -223,6 +223,13 @@ sequenceDiagram
   rides `job_data` (missing → regenerate), whereas the ASB `ReplyTo` is **notification-scoped, has no
   regenerate fallback, and is read at the terminal hop** — so it is persisted on the row
   (`result_queue`), not carried in `job_data`.
+- **Email-detail fields (result-event parity):** `emailSubject`/`emailBody`/`replyToAddress`/
+  `sendToAddress` for the `notification-sent` event come from the provider **send response**, captured
+  at send time and carried across the async hop in the `check-email-status` **message envelope**
+  (`job_data`), then consumed by `markSent()` — mirroring legacy `ExtractedSendEmailResponse` →
+  `ExternalIdentifier` job state → `CompleteHandler.markAsSent(...)` → `Notification.notificationSent()`.
+  Like `correlationId` they ride the envelope (a lost optional degrades to absent); unlike `result_queue`
+  they are **not** persisted on the row and **not** re-read from Gov.Notify at poll.
 - **Dual-write atomicity (Q-delegated #4):** the ingest path is **atomic** — the `notification`
   INSERT and the cp-task-manager task enqueue commit in **one local transaction** on the co-located
   datasource (FR-002/NFR-010), and ASB redelivery + `notificationId` PK dedupe cover a crash between DB

@@ -10,6 +10,8 @@ import org.testcontainers.utility.MountableFile;
 public final class ServiceBusContainerSupport {
     public static final String COMMAND_QUEUE = "nn-send-email";
     public static final String SLICE_COMMAND_QUEUE = "nn-send-email-slice";
+    public static final String RESULT_QUEUE = "nn-result-correspondence";
+    public static final String SLICE_RESULT_QUEUE = "nn-result-slice";
 
     private static final String MSSQL_IMAGE = resolveMssqlImage();
 

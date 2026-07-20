@@ -109,4 +109,5 @@ dependencies {
   testImplementation 'org.wiremock:wiremock-standalone:3.13.2'
   testImplementation 'org.awaitility:awaitility:4.3.0'
   testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:6.0.1'
+  testImplementation 'com.networknt:json-schema-validator:1.5.2'
 }
