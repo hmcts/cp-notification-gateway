@@ -89,7 +89,7 @@ public class SendEmailTask implements ExecutableTask {
         ExecutionInfo result;
         try {
             final SendResult sendResult = emailSender.sendEmail(command, attachment);
-            executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult.reference()));
+            executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult));
             result = completed(executionInfo);
         } catch (final GovNotifyException e) {
             if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {

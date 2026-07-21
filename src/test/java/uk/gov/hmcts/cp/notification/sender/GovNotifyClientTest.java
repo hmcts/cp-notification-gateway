@@ -17,6 +17,7 @@ import uk.gov.service.notify.SendEmailResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +52,7 @@ class GovNotifyClientTest {
             final UUID externalId = UUID.randomUUID();
             final SendEmailResponse response = mock(SendEmailResponse.class);
             when(response.getNotificationId()).thenReturn(externalId);
+            when(response.getFromEmail()).thenReturn(Optional.empty());
             when(notificationClient.sendEmail(any(), any(), any(), any(), any())).thenReturn(response);
 
             final SendResult result = govNotifyClient.send(aSendEmailRequest()
@@ -65,6 +67,22 @@ class GovNotifyClientTest {
             verify(notificationClient).sendEmail(
                     eq(templateId.toString()), eq("user@example.com"), any(), eq(notificationId.toString()),
                     eq(replyToId.toString()));
+        }
+
+        @Test
+        void send_captures_the_subject_body_and_reply_to_from_the_provider_response() throws Exception {
+            final SendEmailResponse response = mock(SendEmailResponse.class);
+            when(response.getNotificationId()).thenReturn(UUID.randomUUID());
+            when(response.getSubject()).thenReturn("Your NCES extract");
+            when(response.getBody()).thenReturn("Please find your report attached.");
+            when(response.getFromEmail()).thenReturn(Optional.of("noreply@justice.gov.uk"));
+            when(notificationClient.sendEmail(any(), any(), any(), any(), any())).thenReturn(response);
+
+            final SendResult result = govNotifyClient.send(aSendEmailRequest().attachment(null).build());
+
+            assertThat(result.emailSubject()).isEqualTo("Your NCES extract");
+            assertThat(result.emailBody()).isEqualTo("Please find your report attached.");
+            assertThat(result.replyToAddress()).isEqualTo("noreply@justice.gov.uk");
         }
 
         @Test
@@ -161,6 +179,7 @@ class GovNotifyClientTest {
     private void stubSendReturningExternalId() throws Exception {
         final SendEmailResponse response = mock(SendEmailResponse.class);
         when(response.getNotificationId()).thenReturn(UUID.randomUUID());
+        when(response.getFromEmail()).thenReturn(Optional.empty());
         when(notificationClient.sendEmail(any(), any(), any(), any(), any())).thenReturn(response);
     }
 

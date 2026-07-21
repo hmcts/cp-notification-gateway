@@ -27,7 +27,7 @@ public class CommandSteps {
         final String notificationId = randomUUID().toString();
         final String templateId = randomUUID().toString();
         final String externalReference = randomUUID().toString();
-        final byte[] attachmentBytes = loadBytes("attachments/report.csv");
+        final byte[] attachmentBytes = loadBytes("fixtures/attachments/report.csv");
 
         final String blobName = "report-" + notificationId + ".csv";
         final String fileUri = anAzureBlobFileStore()
@@ -42,7 +42,7 @@ public class CommandSteps {
         context.setTemplateId(templateId);
         context.setExternalReference(externalReference);
         context.setAttachmentBytes(attachmentBytes);
-        context.setCommandJson(load("commands/send-email-with-attachment.json", of(
+        context.setCommandJson(load("fixtures/commands/send-email-with-attachment.json", of(
                 "notificationId", notificationId,
                 "templateId", templateId,
                 "fileUri", fileUri)));
@@ -56,7 +56,7 @@ public class CommandSteps {
 
         context.setNotificationId(notificationId);
         context.setTemplateId(templateId);
-        context.setCommandJson(load("commands/send-email-missing-attachment.json", of(
+        context.setCommandJson(load("fixtures/commands/send-email-missing-attachment.json", of(
                 "notificationId", notificationId,
                 "templateId", templateId,
                 "fileUri", fileUri)));

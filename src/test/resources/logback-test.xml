@@ -19,7 +19,9 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <logger name="uk.gov.hmcts.cp.notification" level="INFO"/>
+
+    <root level="ERROR">
         <appender-ref ref="JSON"/>
     </root>
 </configuration>

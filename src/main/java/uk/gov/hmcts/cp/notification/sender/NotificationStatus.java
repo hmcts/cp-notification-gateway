@@ -43,7 +43,7 @@ public enum NotificationStatus {
     }
 
     public boolean isInProgress() {
-        return !isFailed();
+        return !isFailed() && this != DELIVERED;
     }
 
     public boolean isFailed() {

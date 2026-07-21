@@ -20,17 +20,19 @@ public class GovNotifySteps {
 
     @Then("the email is sent via the Gov.UK Notify provider")
     public void the_email_is_sent_via_the_gov_uk_notify_provider() {
-        final String expectedRequest = load("gov-notify/expected-send-email-request.json", of(
+        final String expectedRequest = load("fixtures/gov-notify/expected-send-email-request.json", of(
                 "templateId", context.getTemplateId(),
                 "notificationId", context.getNotificationId()));
+        final byte[] attachmentBytes = context.getAttachmentBytes();
         await().atMost(ofSeconds(60))
-                .untilAsserted(() -> govUkNotify.sendEmailRequestMatches(expectedRequest, context.getAttachmentBytes()));
+                .untilAsserted(() -> govUkNotify.sendEmailRequestMatches(expectedRequest, attachmentBytes));
     }
 
     @Then("the delivery status is polled from the provider")
     public void the_delivery_status_is_polled_from_the_provider() {
+        final String externalReference = context.getExternalReference();
         await().atMost(ofSeconds(60))
-                .untilAsserted(() -> govUkNotify.deliveryStatusWasPolledFor(context.getExternalReference()));
+                .untilAsserted(() -> govUkNotify.deliveryStatusWasPolledFor(externalReference));
     }
 
     @Then("no email is sent via the Gov.UK Notify provider")

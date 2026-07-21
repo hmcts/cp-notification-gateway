@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyClient;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
 import uk.gov.hmcts.cp.notification.sender.NotificationStatus;
+import uk.gov.hmcts.cp.notification.service.NotificationEmailDetails;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus;
@@ -56,14 +57,15 @@ class CheckEmailStatusTaskTest {
     class WhenPollingSucceeds {
 
         @Test
-        void should_mark_sent_when_poll_returns_delivered() {
+        void should_mark_sent_with_the_captured_email_details_when_poll_returns_delivered() {
             final UUID id = UUID.randomUUID();
             final String reference = "notify-ref-123";
             when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.DELIVERED);
 
             final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
-            verify(statusService).markSent(id);
+            verify(statusService).markSent(id, new NotificationEmailDetails(
+                    "Your NCES extract", "Please find your report attached.", "noreply@justice.gov.uk"));
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
 
@@ -90,7 +92,7 @@ class CheckEmailStatusTaskTest {
 
             verify(statusService).markFailed(eq(id), isNull(),
                     eq("Gov.Notify responded with status 'permanent-failure'"));
-            verify(statusService, never()).markSent(any());
+            verify(statusService, never()).markSent(any(), any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
     }
@@ -122,7 +124,7 @@ class CheckEmailStatusTaskTest {
             final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
             verify(statusService).markFailed(id, 400, "bad request");
-            verify(statusService, never()).markSent(any());
+            verify(statusService, never()).markSent(any(), any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
     }
@@ -140,6 +142,9 @@ class CheckEmailStatusTaskTest {
         return Json.createObjectBuilder()
                 .add(CheckEmailStatusTask.KEY_NOTIFICATION_ID, notificationId.toString())
                 .add(CheckEmailStatusTask.KEY_REFERENCE, reference)
+                .add(CheckEmailStatusTask.KEY_EMAIL_SUBJECT, "Your NCES extract")
+                .add(CheckEmailStatusTask.KEY_EMAIL_BODY, "Please find your report attached.")
+                .add(CheckEmailStatusTask.KEY_REPLY_TO_ADDRESS, "noreply@justice.gov.uk")
                 .build();
     }
 }

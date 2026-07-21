@@ -3,6 +3,9 @@ package uk.gov.hmcts.cp.notification.integration.stubs;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 import java.time.Duration;
+import java.util.UUID;
+
+import uk.gov.hmcts.cp.notification.integration.Fixtures;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,7 +19,6 @@ import static uk.gov.hmcts.cp.notification.integration.stubs.ASBTestClient.anAsb
 public final class ResultQueueStubService {
 
     private static final Duration RECEIVE_TIMEOUT = Duration.ofSeconds(60);
-    private static final Duration SILENCE_WINDOW = Duration.ofSeconds(10);
 
     private final ASBTestClient queue;
     private ServiceBusReceivedMessage received;
@@ -42,12 +44,6 @@ public final class ResultQueueStubService {
         return this;
     }
 
-    public ResultQueueStubService conformingTo(final String schemaFile) {
-        uk.gov.hmcts.cp.notification.integration.stubs.support.ResultEventSchema
-                .assertConformsTo(schemaFile, body());
-        return this;
-    }
-
     public ResultQueueStubService withField(final String jsonPath, final Object expectedValue) {
         assertThatJson(body()).node(jsonPath).isEqualTo(expectedValue);
         return this;
@@ -60,9 +56,13 @@ public final class ResultQueueStubService {
     }
 
     public void receivesNoResultEvent() {
-        assertThat(queue.receiveMessage(SILENCE_WINDOW))
-                .as("no result event should be published when the notification has no reply queue")
-                .isNull();
+        final String tracer = "tracer-" + UUID.randomUUID();
+        queue.send(tracer);
+        final ServiceBusReceivedMessage first = queue.receiveMessage(RECEIVE_TIMEOUT);
+        assertThat(first).as("the tracer just enqueued must come back").isNotNull();
+        assertThat(first.getBody().toString())
+                .as("the reply queue holds only the tracer — no result event was published ahead of it")
+                .isEqualTo(tracer);
     }
 
     public String body() {

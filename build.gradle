@@ -55,6 +55,7 @@ dependencies {
   testImplementation 'io.cucumber:cucumber-spring'
   // Gradle discovers tests by class, so the Cucumber engine needs a @Suite entry point to run
   testImplementation 'org.junit.platform:junit-platform-suite'
+  testImplementation 'org.junit.platform:junit-platform-launcher'
 
 
   // --- Observability / Actuator / OTEL / Prometheus ---

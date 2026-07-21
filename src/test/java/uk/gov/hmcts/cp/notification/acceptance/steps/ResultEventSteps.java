@@ -16,7 +16,10 @@ public class ResultEventSteps {
         aResultQueue(RESULT_QUEUE)
                 .receivesResultEvent()
                 .withSubject("public.notificationnotify.events.notification-sent")
-                .withField("notificationId", context.getNotificationId());
+                .withField("notificationId", context.getNotificationId())
+                .withField("emailSubject", "Your NCES extract")
+                .withField("emailBody", "Please find your report attached.")
+                .withField("replyToAddress", "noreply@justice.gov.uk");
     }
 
     @Then("a notification-failed result event is published to the originator's reply queue")

@@ -54,6 +54,13 @@ public final class ASBTestClient {
         return this;
     }
 
+    public ASBTestClient send(final String body) {
+        try (ServiceBusSenderClient sender = senderBuilder().buildClient()) {
+            sender.sendMessage(new ServiceBusMessage(body));
+        }
+        return this;
+    }
+
     public ServiceBusReceivedMessage receiveMessage(final Duration timeout) {
         try (ServiceBusReceiverClient receiver = new ServiceBusClientBuilder()
                 .connectionString(ServiceBusContainerSupport.getConnectionString())
@@ -66,12 +73,15 @@ public final class ASBTestClient {
     }
 
     public ASBTestClient purgeDeadLetterQueue() {
+        if (peekDeadLetter() == null) {
+            return this;
+        }
         try (ServiceBusReceiverClient dlq = deadLetterReceiverBuilder()
                 .receiveMode(ServiceBusReceiveMode.RECEIVE_AND_DELETE)
                 .buildClient()) {
             long drained;
             do {
-                drained = dlq.receiveMessages(50, Duration.ofSeconds(1)).stream().count();
+                drained = dlq.receiveMessages(50, Duration.ofMillis(200)).stream().count();
             } while (drained > 0);
         }
         return this;

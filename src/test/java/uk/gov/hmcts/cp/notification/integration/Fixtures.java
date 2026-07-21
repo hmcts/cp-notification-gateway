@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public final class Fixtures {
-    private static final String ROOT = "/fixtures/";
 
     private Fixtures() {
     }
@@ -25,13 +24,13 @@ public final class Fixtures {
     }
 
     public static byte[] loadBytes(final String path) {
-        try (InputStream in = Fixtures.class.getResourceAsStream(ROOT + path)) {
+        try (InputStream in = Fixtures.class.getClassLoader().getResourceAsStream(path)) {
             if (in == null) {
-                throw new IllegalArgumentException("Fixture not found on classpath: " + ROOT + path);
+                throw new IllegalArgumentException("Fixture not found on classpath: " + path);
             }
             return in.readAllBytes();
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed to read fixture: " + ROOT + path, e);
+            throw new UncheckedIOException("Failed to read fixture: " + path, e);
         }
     }
 }

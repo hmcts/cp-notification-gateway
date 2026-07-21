@@ -69,3 +69,4 @@ management:
 logging:
   level:
     root: INFO
+    com.azure: WARN

@@ -8,35 +8,39 @@ import com.networknt.schema.ValidationMessage;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import static java.nio.file.Files.readString;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public final class ResultEventSchema {
+public final class ContractSchema {
     public static final String NOTIFICATION_SENT = "notification-sent.schema.json";
     public static final String NOTIFICATION_FAILED = "notification-failed.schema.json";
+    public static final String SEND_EMAIL_COMMAND = "command-send-email-notification.schema.json";
 
     private static final Path CONTRACTS_DIR = Path.of("contracts");
     private static final JsonSchemaFactory FACTORY =
             JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
-    private ResultEventSchema() {
+    private ContractSchema() {
     }
 
     public static void assertConformsTo(final String schemaFile, final String payloadJson) {
-        final Set<ValidationMessage> errors = load(schemaFile).validate(payloadJson, InputFormat.JSON);
-        assertThat(errors)
-                .as("result-event payload must satisfy the golden-master schema %s", schemaFile)
+        assertThat(violations(schemaFile, payloadJson))
+                .as("payload must satisfy the contract schema %s", schemaFile)
                 .isEmpty();
+    }
+
+    public static Set<ValidationMessage> violations(final String schemaFile, final String payloadJson) {
+        return load(schemaFile).validate(payloadJson, InputFormat.JSON);
     }
 
     private static JsonSchema load(final String schemaFile) {
         try {
-            return FACTORY.getSchema(Files.readString(CONTRACTS_DIR.resolve(schemaFile)));
+            return FACTORY.getSchema(readString(CONTRACTS_DIR.resolve(schemaFile)));
         } catch (final IOException e) {
-            throw new UncheckedIOException("Unable to read golden-master schema: " + schemaFile, e);
+            throw new UncheckedIOException("Unable to read contract schema: " + schemaFile, e);
         }
     }
 }

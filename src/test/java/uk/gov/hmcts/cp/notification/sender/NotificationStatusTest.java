@@ -48,8 +48,10 @@ class NotificationStatusTest {
         void classifies_only_the_three_terminal_states_as_failed(final String status, final boolean failed) {
             final NotificationStatus notificationStatus = NotificationStatus.fromStatus(status);
 
+            final boolean inProgress = !failed && notificationStatus != NotificationStatus.DELIVERED;
+
             assertThat(notificationStatus.isFailed()).isEqualTo(failed);
-            assertThat(notificationStatus.isInProgress()).isEqualTo(!failed);
+            assertThat(notificationStatus.isInProgress()).isEqualTo(inProgress);
         }
     }
 }

@@ -2,6 +2,7 @@ package uk.gov.hmcts.cp.notification.task;
 
 import jakarta.json.JsonBuilderFactory;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
 import jakarta.json.spi.JsonProvider;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
+import uk.gov.hmcts.cp.notification.sender.SendResult;
 import uk.gov.hmcts.cp.notification.time.Clock;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus;
@@ -39,9 +41,9 @@ public class CpTaskFactory {
                 .build();
     }
 
-    public ExecutionInfo createCheckStatusJob(final SendEmailCommand command, final String reference) {
+    public ExecutionInfo createCheckStatusJob(final SendEmailCommand command, final SendResult sendResult) {
         return ExecutionInfo.executionInfo()
-                .withJobData(checkStatusJobData(command, reference))
+                .withJobData(checkStatusJobData(command, sendResult))
                 .withAssignedTaskName(CheckEmailStatusTask.TASK_NAME)
                 .withAssignedTaskStartTime(clock.zonedDateTime())
                 .withExecutionStatus(ExecutionStatus.STARTED)
@@ -55,10 +57,19 @@ public class CpTaskFactory {
         }
     }
 
-    private JsonObject checkStatusJobData(final SendEmailCommand command, final String reference) {
-        return jsonBuilderFactory.createObjectBuilder()
+    private JsonObject checkStatusJobData(final SendEmailCommand command, final SendResult sendResult) {
+        final JsonObjectBuilder builder = jsonBuilderFactory.createObjectBuilder()
                 .add(CheckEmailStatusTask.KEY_NOTIFICATION_ID, command.notificationId().toString())
-                .add(CheckEmailStatusTask.KEY_REFERENCE, reference)
-                .build();
+                .add(CheckEmailStatusTask.KEY_REFERENCE, sendResult.reference());
+        addIfPresent(builder, CheckEmailStatusTask.KEY_EMAIL_SUBJECT, sendResult.emailSubject());
+        addIfPresent(builder, CheckEmailStatusTask.KEY_EMAIL_BODY, sendResult.emailBody());
+        addIfPresent(builder, CheckEmailStatusTask.KEY_REPLY_TO_ADDRESS, sendResult.replyToAddress());
+        return builder.build();
+    }
+
+    private static void addIfPresent(final JsonObjectBuilder builder, final String key, final String value) {
+        if (value != null) {
+            builder.add(key, value);
+        }
     }
 }

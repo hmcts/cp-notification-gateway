@@ -31,7 +31,12 @@ public class GovNotifyClient implements EmailClient {
                     personalisation(request),
                     request.notificationId() == null ? null : request.notificationId().toString(),
                     emailReplyToId(request));
-            return new SendResult(response.getNotificationId().toString());
+            return SendResult.builder()
+                    .reference(response.getNotificationId().toString())
+                    .emailSubject(response.getSubject())
+                    .emailBody(response.getBody())
+                    .replyToAddress(fromEmail(response))
+                    .build();
         } catch (final NotificationClientException e) {
             throw new GovNotifyException(e.getHttpResult(), e.getMessage(), e);
         }
@@ -69,5 +74,9 @@ public class GovNotifyClient implements EmailClient {
 
     private static String emailReplyToId(final SendEmailRequest request) {
         return request.replyToAddressId() == null ? "" : request.replyToAddressId().toString();
+    }
+
+    private static String fromEmail(final SendEmailResponse response) {
+        return response.getFromEmail().orElse(null);
     }
 }

@@ -18,7 +18,7 @@ class AttachmentDownloaderIntegrationTest {
 
     @Test
     void downloads_attachment_bytes_for_a_valid_file_uri() {
-        final byte[] content = Fixtures.loadBytes("attachments/report.csv");
+        final byte[] content = Fixtures.loadBytes("fixtures/attachments/report.csv");
         final String blobName = "report-" + UUID.randomUUID() + ".csv";
         final String fileUri = anAzureBlobFileStore().containing(blobName, content).uriOf(blobName);
 

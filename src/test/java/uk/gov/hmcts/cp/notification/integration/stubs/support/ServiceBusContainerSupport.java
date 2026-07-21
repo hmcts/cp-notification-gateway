@@ -7,6 +7,9 @@ import org.testcontainers.mssqlserver.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public final class ServiceBusContainerSupport {
     public static final String COMMAND_QUEUE = "nn-send-email";
     public static final String SLICE_COMMAND_QUEUE = "nn-send-email-slice";
@@ -31,7 +34,10 @@ public final class ServiceBusContainerSupport {
             .withNetwork(NETWORK)
             .withMsSqlServerContainer(MSSQL);
 
+    private static final Logger MSSQL_DRIVER_LOG = Logger.getLogger("com.microsoft.sqlserver.jdbc");
+
     static {
+        MSSQL_DRIVER_LOG.setLevel(Level.SEVERE);
         MSSQL.start();
         SERVICE_BUS.start();
     }

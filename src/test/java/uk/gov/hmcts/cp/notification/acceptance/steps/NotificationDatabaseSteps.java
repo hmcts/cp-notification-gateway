@@ -20,8 +20,9 @@ public class NotificationDatabaseSteps {
 
     @Then("the notification is recorded as {word}")
     public void the_notification_is_recorded_as(final String status) {
+        final String notificationId = context.getNotificationId();
         await().atMost(ofSeconds(60)).untilAsserted(() ->
-                assertThat(notifications.findById(fromString(context.getNotificationId())))
+                assertThat(notifications.findById(fromString(notificationId)))
                         .hasValueSatisfying(row -> assertThat(row.getStatus()).isEqualTo(status)));
     }
 }

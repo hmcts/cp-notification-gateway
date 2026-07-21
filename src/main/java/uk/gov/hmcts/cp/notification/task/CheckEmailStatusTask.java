@@ -9,10 +9,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.json.JsonObject;
+
 import uk.gov.hmcts.cp.notification.sender.GovNotifyClient;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier;
 import uk.gov.hmcts.cp.notification.sender.NotificationStatus;
+import uk.gov.hmcts.cp.notification.service.NotificationEmailDetails;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
 import uk.gov.hmcts.cp.taskmanager.service.task.ExecutableTask;
@@ -28,6 +31,9 @@ public class CheckEmailStatusTask implements ExecutableTask {
     public static final String TASK_NAME = "CHECK_EMAIL_STATUS";
     public static final String KEY_NOTIFICATION_ID = "notificationId";
     public static final String KEY_REFERENCE = "reference";
+    public static final String KEY_EMAIL_SUBJECT = "emailSubject";
+    public static final String KEY_EMAIL_BODY = "emailBody";
+    public static final String KEY_REPLY_TO_ADDRESS = "replyToAddress";
 
     private static final Logger LOG = LoggerFactory.getLogger(CheckEmailStatusTask.class);
 
@@ -63,7 +69,7 @@ public class CheckEmailStatusTask implements ExecutableTask {
             final NotificationStatus status, final UUID notificationId, final ExecutionInfo executionInfo) {
         final ExecutionInfo result;
         if (status == NotificationStatus.DELIVERED) {
-            statusService.markSent(notificationId);
+            statusService.markSent(notificationId, emailDetailsFrom(executionInfo.getJobData()));
             result = completed(executionInfo);
         } else if (status.isInProgress()) {
             LOG.info("Notification {} not yet delivered (status {}) — will re-poll",
@@ -89,6 +95,13 @@ public class CheckEmailStatusTask implements ExecutableTask {
             result = completed(executionInfo);
         }
         return result;
+    }
+
+    private static NotificationEmailDetails emailDetailsFrom(final JsonObject jobData) {
+        return new NotificationEmailDetails(
+                jobData.getString(KEY_EMAIL_SUBJECT, null),
+                jobData.getString(KEY_EMAIL_BODY, null),
+                jobData.getString(KEY_REPLY_TO_ADDRESS, null));
     }
 
     @Override
