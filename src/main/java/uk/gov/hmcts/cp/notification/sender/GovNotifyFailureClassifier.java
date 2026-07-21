@@ -10,12 +10,14 @@ public final class GovNotifyFailureClassifier {
     }
 
     public static boolean isTemporary(final int httpStatus, final String message) {
+        final boolean temporary;
         if (httpStatus == BAD_REQUEST || httpStatus == REQUEST_ENTITY_TOO_LARGE) {
-            return false;
+            temporary = false;
+        } else if (httpStatus == NON_HTTP) {
+            temporary = message != null && message.contains(SSL_HANDSHAKE);
+        } else {
+            temporary = true;
         }
-        if (httpStatus == NON_HTTP) {
-            return message != null && message.contains(SSL_HANDSHAKE);
-        }
-        return true;
+        return temporary;
     }
 }

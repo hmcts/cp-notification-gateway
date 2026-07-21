@@ -38,14 +38,12 @@ public class BlobClientFactory {
     }
 
     private BlobServiceClient buildServiceClient(final String accountEndpoint) {
+        final BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
         if (StringUtils.hasText(connectionString)) {
-            return new BlobServiceClientBuilder()
-                    .connectionString(connectionString)
-                    .buildClient();
+            builder.connectionString(connectionString);
+        } else {
+            builder.credential(credential).endpoint(accountEndpoint);
         }
-        return new BlobServiceClientBuilder()
-                .credential(credential)
-                .endpoint(accountEndpoint)
-                .buildClient();
+        return builder.buildClient();
     }
 }

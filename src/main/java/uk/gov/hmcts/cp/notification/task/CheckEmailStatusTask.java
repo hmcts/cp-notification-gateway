@@ -50,33 +50,45 @@ public class CheckEmailStatusTask implements ExecutableTask {
                 UUID.fromString(executionInfo.getJobData().getString(KEY_NOTIFICATION_ID));
         final String reference = executionInfo.getJobData().getString(KEY_REFERENCE);
 
-        final NotificationStatus status;
+        ExecutionInfo result;
         try {
-            status = govNotifyClient.checkStatus(reference);
+            result = evaluate(govNotifyClient.checkStatus(reference), notificationId, executionInfo);
         } catch (final GovNotifyException e) {
-            if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
-                LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
-                        notificationId, e.getHttpStatus());
-                return retry(executionInfo);
-            }
-            statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
-            return completed(executionInfo);
+            result = handlePollFailure(notificationId, executionInfo, e);
         }
+        return result;
+    }
 
+    private ExecutionInfo evaluate(
+            final NotificationStatus status, final UUID notificationId, final ExecutionInfo executionInfo) {
+        final ExecutionInfo result;
         if (status == NotificationStatus.DELIVERED) {
             statusService.markSent(notificationId);
-            return completed(executionInfo);
-        }
-
-        if (status.isInProgress()) {
+            result = completed(executionInfo);
+        } else if (status.isInProgress()) {
             LOG.info("Notification {} not yet delivered (status {}) — will re-poll",
                     notificationId, status.getStatus());
-            return retry(executionInfo);
+            result = retry(executionInfo);
+        } else {
+            statusService.markFailed(notificationId, null,
+                    "Gov.Notify responded with status '" + status.getStatus() + "'");
+            result = completed(executionInfo);
         }
+        return result;
+    }
 
-        statusService.markFailed(notificationId, null,
-                "Gov.Notify responded with status '" + status.getStatus() + "'");
-        return completed(executionInfo);
+    private ExecutionInfo handlePollFailure(
+            final UUID notificationId, final ExecutionInfo executionInfo, final GovNotifyException e) {
+        final ExecutionInfo result;
+        if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
+            LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
+                    notificationId, e.getHttpStatus());
+            result = retry(executionInfo);
+        } else {
+            statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
+            result = completed(executionInfo);
+        }
+        return result;
     }
 
     @Override

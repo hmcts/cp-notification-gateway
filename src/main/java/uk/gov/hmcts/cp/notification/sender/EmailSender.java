@@ -33,11 +33,12 @@ public class EmailSender {
     }
 
     private static String filenameFrom(final String fileUri) {
-        if (fileUri == null) {
-            return null;
+        String filename = null;
+        if (fileUri != null) {
+            final String path = fileUri.split("\\?", 2)[0];
+            final int lastSlash = path.lastIndexOf('/');
+            filename = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
         }
-        final String path = fileUri.split("\\?", 2)[0];
-        final int lastSlash = path.lastIndexOf('/');
-        return lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+        return filename;
     }
 }

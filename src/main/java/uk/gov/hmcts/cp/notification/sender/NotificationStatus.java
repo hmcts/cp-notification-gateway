@@ -28,12 +28,14 @@ public enum NotificationStatus {
     }
 
     public static NotificationStatus fromStatus(final String status) {
+        NotificationStatus result = UNEXPECTED_FAILURE;
         for (final NotificationStatus value : values()) {
             if (value.status.equals(status)) {
-                return value;
+                result = value;
+                break;
             }
         }
-        return UNEXPECTED_FAILURE;
+        return result;
     }
 
     public String getStatus() {

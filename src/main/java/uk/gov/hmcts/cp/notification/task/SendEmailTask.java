@@ -64,35 +64,46 @@ public class SendEmailTask implements ExecutableTask {
         final SendEmailCommand command = objectMapper.readValue(
                 executionInfo.getJobData().toString(), SendEmailCommand.class);
 
-        final byte[] attachment;
+        ExecutionInfo result;
         try {
-            attachment = StringUtils.hasText(command.fileUri())
-                    ? attachmentDownloader.download(command.fileUri())
-                    : null;
+            result = send(command, downloadAttachment(command), executionInfo);
         } catch (final PermanentBlobException e) {
             LOG.warn("Permanent attachment failure for notification {} — marking FAILED, no retry",
                     command.notificationId());
             statusService.markFailed(command.notificationId(), e.getStatusCode(), e.getMessage());
-            return completed(executionInfo);
+            result = completed(executionInfo);
         }
+        return result;
+    }
 
-        final SendResult result;
+    private byte[] downloadAttachment(final SendEmailCommand command) {
+        byte[] attachment = null;
+        if (StringUtils.hasText(command.fileUri())) {
+            attachment = attachmentDownloader.download(command.fileUri());
+        }
+        return attachment;
+    }
+
+    private ExecutionInfo send(
+            final SendEmailCommand command, final byte[] attachment, final ExecutionInfo executionInfo) {
+        ExecutionInfo result;
         try {
-            result = emailSender.sendEmail(command, attachment);
+            final SendResult sendResult = emailSender.sendEmail(command, attachment);
+            executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult.reference()));
+            result = completed(executionInfo);
         } catch (final GovNotifyException e) {
             if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
                 LOG.warn("Transient send failure for notification {} (http {}) — will retry",
                         command.notificationId(), e.getHttpStatus());
-                return retry(executionInfo);
+                result = retry(executionInfo);
+            } else {
+                LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
+                        command.notificationId(), e.getHttpStatus());
+                statusService.markFailed(command.notificationId(), e.getHttpStatus(), e.getMessage());
+                result = completed(executionInfo);
             }
-            LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
-                    command.notificationId(), e.getHttpStatus());
-            statusService.markFailed(command.notificationId(), e.getHttpStatus(), e.getMessage());
-            return completed(executionInfo);
         }
-
-        executionService.executeWith(taskFactory.createCheckStatusJob(command, result.reference()));
-        return completed(executionInfo);
+        return result;
     }
 
     @Override

@@ -29,22 +29,33 @@ public class SendEmailConsumer {
         final String messageId = context.getMessage().getMessageId();
         final String body = context.getMessage().getBody().toString();
 
-        final SendEmailCommand command;
+        final SendEmailCommand command = deserialise(body, messageId, context);
+        if (command != null) {
+            final Set<ConstraintViolation<SendEmailCommand>> violations = validator.validate(command);
+            if (violations.isEmpty()) {
+                ingest(command, context, messageId);
+            } else {
+                LOG.warn("Dead-lettering invalid message {}: {}", messageId, violations);
+                context.deadLetter();
+            }
+        }
+    }
+
+    private SendEmailCommand deserialise(
+            final String body, final String messageId, final ServiceBusReceivedMessageContext context) {
+        SendEmailCommand command = null;
         try {
             command = objectMapper.readValue(body, SendEmailCommand.class);
         } catch (final JacksonException e) {
             LOG.warn("Dead-lettering unparseable message {}: {}", messageId, e.getMessage());
             context.deadLetter();
-            return;
         }
+        return command;
+    }
 
-        final Set<ConstraintViolation<SendEmailCommand>> violations = validator.validate(command);
-        if (!violations.isEmpty()) {
-            LOG.warn("Dead-lettering invalid message {}: {}", messageId, violations);
-            context.deadLetter();
-            return;
-        }
-
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    private void ingest(
+            final SendEmailCommand command, final ServiceBusReceivedMessageContext context, final String messageId) {
         try {
             ingestionService.ingest(command, context.getMessage().getReplyTo());
             context.complete();

@@ -15,7 +15,7 @@ import org.springframework.util.StringUtils;
                 + " || !'${cp.notification.servicebus.namespace:}'.trim().isEmpty()")
 public class ServiceBusConfig {
     @Bean(destroyMethod = "close")
-    ServiceBusProcessorClient sendEmailProcessorClient(
+    /* default */ ServiceBusProcessorClient sendEmailProcessorClient(
             @Value("${cp.notification.servicebus.connection-string:}") final String connectionString,
             @Value("${cp.notification.servicebus.namespace:}") final String namespace,
             @Value("${cp.notification.servicebus.command-queue}") final String commandQueue,
@@ -34,11 +34,14 @@ public class ServiceBusConfig {
 
     private static ServiceBusClientBuilder authenticate(
             final ServiceBusClientBuilder builder, final String connectionString, final String namespace) {
+        final ServiceBusClientBuilder authenticated;
         if (StringUtils.hasText(connectionString)) {
-            return builder.connectionString(connectionString);
+            authenticated = builder.connectionString(connectionString);
+        } else {
+            authenticated = builder
+                    .fullyQualifiedNamespace(namespace)
+                    .credential(new DefaultAzureCredentialBuilder().build());
         }
-        return builder
-                .fullyQualifiedNamespace(namespace)
-                .credential(new DefaultAzureCredentialBuilder().build());
+        return authenticated;
     }
 }

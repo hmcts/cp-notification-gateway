@@ -9,7 +9,7 @@ import uk.gov.service.notify.NotificationClient;
 @Configuration
 class GovNotifyConfig {
     @Bean
-    NotificationClient notificationClient(
+    /* default */ NotificationClient notificationClient(
             @Value("${cp.notification.govnotify.base-url:}") final String baseUrl,
             @Value("${cp.notification.govnotify.api-key:}") final String apiKey) {
         return new NotificationClient(apiKey, baseUrl);
