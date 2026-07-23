@@ -36,13 +36,13 @@ class EmailSenderTest {
     void routes_the_request_built_from_the_command_and_attachment_to_the_selected_client() {
         final UUID id = UUID.randomUUID();
         final byte[] attachment = "report".getBytes(StandardCharsets.UTF_8);
-        when(senderFactory.createFor(any(SendEmailRequest.class))).thenReturn(emailClient);
+        when(senderFactory.selectFor(any(SendEmailRequest.class))).thenReturn(emailClient);
         when(emailClient.send(any(SendEmailRequest.class))).thenReturn(aSendResult().reference("ref-1").build());
 
         final SendResult result = emailSender.sendEmail(
                 aSendEmailCommand().notificationId(id).sendToAddress("user@example.com").build(), attachment);
 
-        verify(senderFactory).createFor(requestCaptor.capture());
+        verify(senderFactory).selectFor(requestCaptor.capture());
         assertThat(requestCaptor.getValue().notificationId()).isEqualTo(id);
         assertThat(requestCaptor.getValue().emailAddress()).isEqualTo("user@example.com");
         assertThat(requestCaptor.getValue().attachment()).isEqualTo(attachment);
@@ -52,12 +52,12 @@ class EmailSenderTest {
     @Test
     void sends_a_request_with_no_attachment_when_none_is_supplied() {
         final UUID id = UUID.randomUUID();
-        when(senderFactory.createFor(any(SendEmailRequest.class))).thenReturn(emailClient);
+        when(senderFactory.selectFor(any(SendEmailRequest.class))).thenReturn(emailClient);
         when(emailClient.send(any(SendEmailRequest.class))).thenReturn(aSendResult().build());
 
         emailSender.sendEmail(aSendEmailCommand().notificationId(id).build(), null);
 
-        verify(senderFactory).createFor(requestCaptor.capture());
+        verify(senderFactory).selectFor(requestCaptor.capture());
         assertThat(requestCaptor.getValue().attachment()).isNull();
     }
 }

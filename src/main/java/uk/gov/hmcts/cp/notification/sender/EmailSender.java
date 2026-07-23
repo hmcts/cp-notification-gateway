@@ -25,7 +25,7 @@ public class EmailSender {
                 command.replyToAddress(),
                 command.replyToAddressId());
 
-        final EmailClient client = emailClientFactory.createFor(request);
+        final EmailClient client = emailClientFactory.selectFor(request);
         final SendResult result = client.send(request);
         LOG.info("Sent notification {} via {} (reference {})",
                 command.notificationId(), client.getClass().getSimpleName(), result.reference());

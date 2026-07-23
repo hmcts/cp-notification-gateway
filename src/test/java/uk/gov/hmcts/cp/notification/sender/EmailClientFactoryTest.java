@@ -23,6 +23,6 @@ class EmailClientFactoryTest {
     void should_route_a_standard_small_attachment_email_to_gov_notify() {
         final SendEmailRequest request = aSendEmailRequest().build();
 
-        assertThat(senderFactory.createFor(request)).isSameAs(govNotifyClient);
+        assertThat(senderFactory.selectFor(request)).isSameAs(govNotifyClient);
     }
 }

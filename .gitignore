@@ -35,3 +35,4 @@ applicationinsights-agent-*.jar
 */.DS_Store
 
 .claude
+.serena

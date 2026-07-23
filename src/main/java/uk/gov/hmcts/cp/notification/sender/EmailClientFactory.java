@@ -10,7 +10,7 @@ public class EmailClientFactory {
     @SuppressWarnings("unused")
     private final Office365Client office365Sender;
 
-    public EmailClient createFor(final SendEmailRequest request) {
+    public EmailClient selectFor(final SendEmailRequest request) {
         return govNotifyClient;
     }
 }
