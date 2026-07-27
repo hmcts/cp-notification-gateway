@@ -1,9 +1,11 @@
-# Query-API authentication — analysis and options (NG-S04 / FR-024)
+# Query-API authentication — analysis and options (NG-S14 / FR-024)
 
-**Status:** ⏳ **Decision pending** — analysis complete, pattern not yet chosen. Held in
-`docs/pipeline/pending/`; to be resolved once the exposure/consumer questions in §7 are answered.
+**Status:** ⏳ **Decision pending** — analysis complete, pattern not yet chosen. Owned by
+**NG-S14** (sliced out of NG-S04, which now covers only the read API itself and ships it
+deny-all-by-default). Held in `docs/pipeline/pending/`; to be resolved once the exposure/consumer
+questions in §7 are answered, and an ADR raised before implementation begins.
 
-**Scope:** How to secure the read (query) REST API added in NG-S04
+**Scope:** How to secure the read (query) REST API delivered by NG-S04
 (`GET /notifications/{id}`, `GET /notifications?…`) so that AC-039 holds — an unauthenticated
 request is rejected (401/403) and a valid caller is served — without ever exposing OFFICIAL-SENSITIVE
 PII (`send_to_address`) unauthenticated (NFR-004/005/006).

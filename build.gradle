@@ -37,6 +37,8 @@ dependencies {
   implementation 'org.springframework.boot:spring-boot-starter-web'
   // Bean Validation (jakarta) — validates the inbound SendEmailCommand and provides the Validator bean
   implementation 'org.springframework.boot:spring-boot-starter-validation'
+  // Security (NG-S04) — interim permit-all filter chain over the read query API; real auth arrives in NG-S14
+  implementation 'org.springframework.boot:spring-boot-starter-security'
   testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
   // @DataJpaTest slice (Boot 4 modular test starter) for the repository boundary test — no full context
   testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
@@ -111,4 +113,8 @@ dependencies {
   testImplementation 'org.awaitility:awaitility:4.3.0'
   testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:6.0.1'
   testImplementation 'com.networknt:json-schema-validator:1.5.2'
+
+  // OpenAPI conformance (NG-S04): validate the query controller's requests/responses against the
+  // in-repo OpenAPI 3.0 contract at contracts/openapi/notification-gateway.openapi.yaml via MockMvc.
+  testImplementation 'com.atlassian.oai:swagger-request-validator-mockmvc:2.46.1'
 }

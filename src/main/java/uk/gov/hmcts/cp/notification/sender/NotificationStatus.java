@@ -49,8 +49,4 @@ public enum NotificationStatus {
     public boolean isFailed() {
         return FAILURE_STATES.contains(this);
     }
-
-    public boolean isInvalidRequest() {
-        return this == INVALID_REQUEST;
-    }
 }
