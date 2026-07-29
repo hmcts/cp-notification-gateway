@@ -1,0 +1,79 @@
+tasks.withType(Test).configureEach {
+  systemProperty 'API_SPEC_VERSION', project.version
+  failFast = true
+  // Mockito must be added as an agent, see:
+  // https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+  jvmArgs += [
+    "-javaagent:${configurations.testRuntimeClasspath.find { it.name.contains('mockito-core') }}", '-Xshare:off'
+  ]
+  testLogging {
+    events "passed", "skipped", "failed"
+    exceptionFormat = 'full'
+    showStandardStreams = true
+  }
+  reports {
+    junitXml.required.set(true)
+    html.required.set(true)
+  }
+}
+
+tasks.named('test') {
+  description = 'Runs unit tests only (no containers).'
+  useJUnitPlatform {
+    excludeEngines 'cucumber', 'junit-platform-suite'
+  }
+  exclude '**/*IntegrationTest*'
+}
+
+tasks.register('integrationTest', Test) {
+  description = 'Runs boundary integration tests (sliced) and the BDD acceptance suite — both need containers.'
+  group = 'verification'
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  useJUnitPlatform {
+    includeEngines 'junit-jupiter', 'junit-platform-suite'
+  }
+  include '**/*IntegrationTest*', '**/AcceptanceTest*'
+  shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+  dependsOn 'integrationTest'
+  finalizedBy 'testTimingReport'
+}
+
+tasks.register('testTimingReport') {
+  group = 'verification'
+  doLast {
+    def secsByCategory = [unit: 0d, integration: 0d, acceptance: 0d]
+    def accumulate = { String dirName ->
+      def dir = layout.buildDirectory.dir("test-results/${dirName}").get().asFile
+      if (!dir.exists()) return
+      dir.listFiles({ f -> f.name ==~ /TEST-.*\.xml/ } as FileFilter).each { f ->
+        def secs = (new groovy.xml.XmlSlurper().parse(f).@time.text() ?: '0') as double
+        def acceptance = f.name.contains('.feature') || f.name.contains('AcceptanceTest')
+        def category = dirName == 'test' ? 'unit' : (acceptance ? 'acceptance' : 'integration')
+        secsByCategory[category] += secs
+      }
+    }
+    accumulate('test')
+    accumulate('integrationTest')
+    println '\nTest timing by category:'
+    ['unit', 'integration', 'acceptance'].each { category ->
+      println String.format('  %-12s %6.2fs', category, secsByCategory[category])
+    }
+  }
+}
+
+tasks.named('jacocoTestReport') {
+  dependsOn tasks.named('test'), tasks.named('integrationTest')
+  executionData fileTree(
+    dir: layout.buildDirectory.dir("jacoco").get().asFile,
+    include: ["*.exec"]
+  )
+  reports {
+    xml.required.set(true)
+    csv.required.set(false)
+    html.required.set(true)
+  }
+}

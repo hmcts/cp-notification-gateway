@@ -1,0 +1,6 @@
+{
+  "notificationId": "${notificationId}",
+  "templateId": "${templateId}",
+  "sendToAddress": "reports@example.com",
+  "fileUri": "${fileUri}"
+}

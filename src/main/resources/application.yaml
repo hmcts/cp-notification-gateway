@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: cp-notification-gateway
+  datasource:
+    url: ${CP_NG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notificationgateway}
+    username: ${CP_NG_DATASOURCE_USERNAME:notificationgateway}
+    password: ${CP_NG_DATASOURCE_PASSWORD:notificationgateway}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: cp-notification-gateway-hikari
+      maximum-pool-size: ${CP_NG_DB_POOL_SIZE:20}
+      minimum-idle: ${CP_NG_DB_MIN_IDLE:5}
+      auto-commit: false   # transactions committed explicitly (@Transactional) — required for the FR-003 atomic INSERT + enqueue
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # schema owned by Flyway; Hibernate only validates mappings match the DB
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.connection.provider_disables_autocommit: true
+  flyway:
+    enabled: true
+    # classpath:db/migration is augmented at runtime by cp-task-manager's
+    # TaskManagerFlywayAutoConfiguration, which merges classpath:db/taskmanager (the `jobs` table)
+    # into this same Flyway run — no manual spring.flyway.locations entry needed (AC-001a).
+
+server:
+  port: ${SERVER_PORT:8082}
+
+cp:
+  notification:
+    servicebus:
+      # Auth switches by config (NG-S07): connection-string is the emulator/local exception (NFR-002);
+      # when it is blank the client authenticates to `namespace` with DefaultAzureCredential (Managed
+      # Identity in AKS). Both blank -> the ASB consumer is inactive (local runs / non-ASB tests start cleanly).
+      connection-string: ${CP_NG_SERVICEBUS_CONNECTION_STRING:}
+      # Fully-qualified namespace, e.g. my-namespace.servicebus.windows.net (Managed Identity path).
+      namespace: ${CP_NG_SERVICEBUS_NAMESPACE:}
+      command-queue: ${CP_NG_SERVICEBUS_COMMAND_QUEUE:nn-send-email}
+    blob:
+      # Empty by default -> AttachmentDownloader uses DefaultAzureCredential (Workload Identity),
+      # addressing the command's fileUri directly. Set the connection string only for Azurite/local
+      # (emulator-only, NFR-002).
+      connection-string: ${CP_NG_BLOB_CONNECTION_STRING:}
+    govnotify:
+      base-url: ${CP_NG_GOVNOTIFY_BASE_URL:https://api.notifications.service.gov.uk}
+      # Gov.Notify API key — injected from Key Vault in deployed environments; never a real key in config.
+      api-key: ${CP_NG_GOVNOTIFY_API_KEY:}
+    retry:
+      # Preserved legacy email retry/poll backoff (seconds); legacy default from
+      # notify.email.retry.threshold.durations. Overridable per environment without a redeploy.
+      email-durations-secs: ${CP_NG_EMAIL_RETRY_DURATIONS_SECS:60,300,1800,3600,7200,14400}
+
+azure:
+  application-insights:
+    instrumentation-key: ${rpe.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health, info, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true   # enables liveness / readiness groups
+
+logging:
+  level:
+    root: INFO

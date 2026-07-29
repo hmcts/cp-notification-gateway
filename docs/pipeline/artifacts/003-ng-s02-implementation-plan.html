@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- claude-artifact: created=2026-07-14 project=cp-notification-gateway kind=report -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NG-S02 — Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071210; --panel:#0c1c19; --panel-2:#103029; --edge:#1d4038;
+    --txt:#9fc7bd; --txt-hi:#e8fff7; --muted:#5f857b;
+    --teal:#2fe6b6; --teal-dim:#179e7c; --cyan:#46d6ff; --gold:#ffce5c; --done:#2fe6b6; --rose:#ff6b8a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:radial-gradient(1000px 500px at 90% -10%,rgba(47,230,182,.07),transparent),var(--bg);
+    color:var(--txt);font-family:'Manrope',system-ui,sans-serif;font-size:15px;line-height:1.65}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 24px 110px}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  header{margin-bottom:40px}
+  .kicker{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:3px;text-transform:uppercase;color:var(--teal-dim)}
+  h1{color:var(--txt-hi);font-size:clamp(26px,4.4vw,40px);font-weight:800;letter-spacing:-.5px;margin:12px 0 8px}
+  .sub{color:var(--muted);max-width:70ch}
+
+  .overall{margin-top:24px;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 20px}
+  .overall .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
+  .overall .top b{color:var(--txt-hi)}
+  .track{height:10px;border-radius:6px;background:#0a1714;overflow:hidden;border:1px solid var(--edge)}
+  .fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--teal-dim),var(--teal));
+    box-shadow:0 0 14px rgba(47,230,182,.5);animation:grow 1.4s ease forwards}
+  @keyframes grow{to{width:var(--w,42%)}}
+
+  .phase{position:relative;padding:0 0 14px 46px;margin-bottom:8px}
+  .phase::before{content:"";position:absolute;left:15px;top:6px;bottom:-8px;width:2px;background:var(--edge)}
+  .phase:last-child::before{display:none}
+  .phase>.pin{position:absolute;left:0;top:2px;width:32px;height:32px;border-radius:50%;background:var(--panel-2);
+    border:2px solid var(--teal-dim);display:grid;place-items:center;font:700 13px 'JetBrains Mono',monospace;color:var(--teal);z-index:2}
+  .phase.done>.pin{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+  .phase.active>.pin{border-color:var(--teal);box-shadow:0 0 0 4px rgba(47,230,182,.15);animation:beat 2s infinite}
+  @keyframes beat{50%{box-shadow:0 0 0 8px rgba(47,230,182,.05)}}
+  .phase .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:18px 20px;margin-left:4px}
+  .phase.active .card{border-color:var(--teal-dim)}
+  .ph-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .ph-head h3{font-size:17px;color:var(--txt-hi);font-weight:700}
+  .tag{font:600 10.5px/1 'JetBrains Mono',monospace;letter-spacing:.5px;padding:5px 9px;border-radius:20px;border:1px solid currentColor}
+  .tag.t{color:var(--cyan)} .tag.o{color:var(--gold)} .tag.d{color:var(--done)} .tag.now{color:var(--teal);background:rgba(47,230,182,.1)}
+  .ph-desc{color:var(--txt);font-size:14px;margin-bottom:14px}
+
+  ul.tasks{list-style:none;margin:6px 0 14px}
+  ul.tasks li{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:14px}
+  ul.tasks .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--edge);flex-shrink:0;margin-top:2px;position:relative}
+  ul.tasks li.x .box{background:var(--teal);border-color:var(--teal)}
+  ul.tasks li.x .box::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--bg);font-size:12px;font-weight:800}
+  ul.tasks li.x{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--teal-dim)}
+
+  .note{background:var(--panel-2);border:1px solid var(--edge);border-left:3px solid var(--gold);border-radius:8px;
+    padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--txt)}
+  .note b{color:var(--txt-hi)}
+  code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--cyan)}
+
+  table.map{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:13px}
+  table.map th,table.map td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--edge);vertical-align:top}
+  table.map th{color:var(--teal-dim);font:700 11px 'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+  table.map td.ac{color:var(--gold);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+  table.map td code{color:var(--cyan)}
+
+  .milestone{display:inline-flex;align-items:center;gap:8px;margin-top:8px;color:var(--gold);font-size:13px;font-weight:600}
+  .milestone::before{content:"◆";color:var(--gold)}
+
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--edge);color:var(--muted);
+    font:500 12px 'JetBrains Mono',monospace;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Implementation Plan · NG-S02 · PEG-3372</div>
+    <h1>Core email send — ASB ingest → blob → Gov.Notify → SENT</h1>
+    <p class="sub">Turn the RED NG-S02 suite GREEN: consume <code>send-email-notification</code> from the shared
+      <code>nn-send-email</code> queue, persist an atomic QUEUED row + <code>SEND_EMAIL</code> job, download the
+      attachment from Azure Blob, send via Gov.UK Notify, then poll <code>CHECK_EMAIL_STATUS</code> to drive the row to
+      SENT. Credential switches (blob + ASB) let the same code run on Azurite/emulator locally and Managed Identity in AKS.</p>
+    <div class="overall" style="--w:100%">
+      <div class="top"><span>Class-by-class plan</span><b>18 production classes · 12 ACs</b></div>
+      <div class="track"><div class="fill"></div></div>
+    </div>
+  </header>
+
+  <div class="phase done">
+    <div class="pin">1</div>
+    <div class="card">
+      <div class="ph-head"><h3>Persistence &amp; command contract</h3><span class="tag d">Plan</span><span class="tag t mono">AC-001/003/004/005</span></div>
+      <div class="ph-desc">Round-trip every column the ingest + status paths write; the command is the job payload.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span><code>persistence/NotificationEntity</code> — add <code>clientContext</code> + <code>resultQueue</code> to the NG-S01 fields</li>
+        <li class="x"><span class="box"></span><code>persistence/NotificationRepository</code> — <code>JpaRepository</code>; <code>existsById</code> backs PK dedupe</li>
+        <li class="x"><span class="box"></span><code>command/SendEmailCommand</code> — jakarta-validated record (<code>fileId → fileUri</code>)</li>
+      </ul>
+      <div class="note">No new migration: NG-S01's <code>V1000</code> already has <code>client_context</code> + <code>result_queue</code>. Hibernate <code>ddl-auto: validate</code> confirms the entity matches.</div>
+    </div>
+  </div>
+
+  <div class="phase done">
+    <div class="pin">2</div>
+    <div class="card">
+      <div class="ph-head"><h3>ASB command ingest (atomic)</h3><span class="tag d">Plan</span><span class="tag t mono">AC-002…008</span></div>
+      <div class="ph-desc">Real <code>ServiceBusProcessorClient</code>, explicit settlement, one local tx for INSERT + job enqueue.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span><code>messaging/ServiceBusConfig</code> — processor bean gated on connection-string (emulator/local); MI in NG-S07</li>
+        <li class="x"><span class="box"></span><code>messaging/SendEmailConsumer</code> — parse → validate → ingest; <code>deadLetter</code>/<code>complete</code>/<code>abandon</code>; captures <code>ReplyTo</code></li>
+        <li class="x"><span class="box"></span><code>service/NotificationIngestionService</code> — <code>@Transactional</code> dedupe + INSERT QUEUED + <code>executeWith(SEND_EMAIL)</code>, <code>result_queue = ReplyTo</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase done">
+    <div class="pin">3</div>
+    <div class="card">
+      <div class="ph-head"><h3>Boundaries — Blob &amp; Gov.Notify (credential switch)</h3><span class="tag d">Plan</span><span class="tag t mono">AC-009/010/011/012</span></div>
+      <div class="ph-desc">Each boundary switches auth by config so tests hit emulator/stub and prod uses Managed Identity — no code change between envs.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span><code>blob/AttachmentDownloader</code> — <b>connection-string set → Azurite; else DefaultAzureCredential + endpoint</b> (mirrors reference-data producer). 403/404 → <code>PermanentBlobException</code></li>
+        <li class="x"><span class="box"></span><code>blob/PermanentBlobException</code> — carries the HTTP status (403/404) for <code>markFailed</code></li>
+        <li class="x"><span class="box"></span><code>sender/GovNotifySender</code> — <code>RestClient</code> on <code>govnotify.base-url</code> (WireMock/stub-able), JWT bearer from API key; <code>send</code> + <code>checkStatus</code></li>
+        <li class="x"><span class="box"></span><code>sender/{EmailSender,SendEmailRequest,SendResult,DeliveryStatus,SenderFactory,Office365Sender}</code> — routing seam (Gov.Notify default; O365 stub = NG-S10)</li>
+      </ul>
+      <div class="note"><b>Credential switch, both boundaries:</b> <code>StringUtils.hasText(connection-string)</code> selects the connection-string client (emulator-only exception, NFR-002); otherwise <code>DefaultAzureCredentialBuilder</code> (Workload Identity). ASB config uses the same gate, so NG-S07 only flips config to move ASB onto MI.</div>
+    </div>
+  </div>
+
+  <div class="phase done">
+    <div class="pin">4</div>
+    <div class="card">
+      <div class="ph-head"><h3>Task orchestration &amp; terminal state</h3><span class="tag d">Plan</span><span class="tag t mono">AC-011/012/013 · FR-010</span></div>
+      <div class="ph-desc">The cp-task-manager tasks stitch the boundaries together and drive the row terminal; retry cadence preserved byte-for-byte.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span><code>task/SendEmailTask</code> (<code>@Task("SEND_EMAIL")</code>) — download → route → send → schedule <code>CHECK_EMAIL_STATUS</code> (reference in <code>job_data</code>). Permanent blob fail → <code>markFailed</code> + COMPLETED (no retry)</li>
+        <li class="x"><span class="box"></span><code>task/CheckEmailStatusTask</code> (<code>@Task("CHECK_EMAIL_STATUS")</code>) — DELIVERED → <code>markSent</code> + COMPLETED; else INPROGRESS + shouldRetry (re-poll)</li>
+        <li class="x"><span class="box"></span><code>service/NotificationStatusService</code> — <code>markSent(id)</code> / <code>markFailed(id, statusCode, errorMessage)</code></li>
+        <li class="x"><span class="box"></span>Both tasks return <code>getRetryDurationsInSecs()</code> = <code>[60,300,1800,3600,7200,14400]</code></li>
+      </ul>
+      <div class="note"><b>cp-task-manager has no FAILED state</b> (STARTED/INPROGRESS/COMPLETED only): a permanent failure marks the notification FAILED and settles the job COMPLETED — never a throw-loop.</div>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">5</div>
+    <div class="card">
+      <div class="ph-head"><h3>build.gradle + verify GREEN</h3><span class="tag now">Run</span></div>
+      <div class="ph-desc">Promote the Azure SDKs to production scope, then run the full emulator-backed suite.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span>Promote to <code>implementation</code>: <code>azure-messaging-servicebus</code>, <code>azure-storage-blob</code>, <b>add</b> <code>azure-identity</code>; add <code>spring-boot-starter-validation</code>; <code>runtimeOnly parsson</code></li>
+        <li><span class="box"></span><code>./gradlew build</code> — Postgres + ASB emulator (+MSSQL) + Azurite + WireMock via Testcontainers; all NG-S02 + folded repository + sanity/actuator + Cucumber green</li>
+        <li><span class="box"></span>Halt uncommitted on <code>dev/PEG-3372</code> for review (user branches after NG-S01 PR merges)</li>
+      </ul>
+      <span class="milestone">Core send slice green — NG-S03 adds the result-event publish</span>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="pin">6</div>
+    <div class="card">
+      <div class="ph-head"><h3>AC → class mapping</h3><span class="tag t mono">traceability</span></div>
+      <table class="map">
+        <tr><th>AC</th><th>Behaviour</th><th>Class(es)</th></tr>
+        <tr><td class="ac">AC-002</td><td>No REST command surface (ASB-only)</td><td><code>SendEmailConsumer</code> (no controller)</td></tr>
+        <tr><td class="ac">AC-003</td><td>Shared queue/handler; clientContext is passthrough</td><td><code>SendEmailConsumer</code> · <code>NotificationIngestionService</code></td></tr>
+        <tr><td class="ac">AC-004</td><td>ReplyTo → <code>result_queue</code> (null = fire-and-forget)</td><td><code>SendEmailConsumer</code> · <code>NotificationIngestionService</code></td></tr>
+        <tr><td class="ac">AC-005</td><td>Duplicate = idempotent no-op</td><td><code>NotificationIngestionService.existsById</code></td></tr>
+        <tr><td class="ac">AC-006/007/008</td><td>Atomic INSERT+enqueue; complete-after-commit; abandon-on-failure</td><td><code>@Transactional ingest</code> · <code>SendEmailConsumer</code></td></tr>
+        <tr><td class="ac">AC-009</td><td>Attachment download by fileUri</td><td><code>AttachmentDownloader</code> · <code>SendEmailTask</code></td></tr>
+        <tr><td class="ac">AC-010</td><td>403/404 → permanent → FAILED, no retry</td><td><code>PermanentBlobException</code> · <code>SendEmailTask</code> · <code>NotificationStatusService</code></td></tr>
+        <tr><td class="ac">AC-011</td><td>Send → schedule CHECK with reference in job_data</td><td><code>GovNotifySender</code> · <code>SenderFactory</code> · <code>SendEmailTask</code></td></tr>
+        <tr><td class="ac">AC-012</td><td>Poll DELIVERED → SENT</td><td><code>CheckEmailStatusTask</code> · <code>GovNotifySender.checkStatus</code></td></tr>
+        <tr><td class="ac">AC-013</td><td>Retry/poll durations preserved</td><td><code>SendEmailTask</code> · <code>CheckEmailStatusTask</code></td></tr>
+        <tr><td class="ac">FR-010/AC-019</td><td>End-to-end over emulators, no external calls</td><td>whole slice (SendEmailEndToEndIntegrationTest)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <footer>NG-S02 · cp-notification-gateway · A-TDD RED→GREEN · ASB ingest + blob + Gov.Notify + task orchestration · credential switch (blob/ASB)</footer>
+</div>
+</body>
+</html>

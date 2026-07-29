@@ -1,0 +1,16 @@
+# Test-profile overrides (active via @ActiveProfiles("test") on the integration/acceptance bases).
+# No OTLP collector runs during tests, so disable the OTLP exporters — otherwise the OTLP metric/trace
+# push fails with ConnectException to http://localhost:4318 on context shutdown, spamming WARN logs.
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  tracing:
+    enabled: false
+
+# Only the shared full-application context (sanity + BDD) loads cp-task-manager's poller; the sliced
+# boundary tests don't. A fast poll drives the async job pipeline promptly in the BDD suite.
+job:
+  executor:
+    poll-interval: 200

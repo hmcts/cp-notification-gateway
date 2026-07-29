@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- claude-artifact: created=2026-07-13 project=cp-notification-gateway kind=report -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NG-S01 — Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071210; --panel:#0c1c19; --panel-2:#103029; --edge:#1d4038;
+    --txt:#9fc7bd; --txt-hi:#e8fff7; --muted:#5f857b;
+    --teal:#2fe6b6; --teal-dim:#179e7c; --cyan:#46d6ff; --gold:#ffce5c; --done:#2fe6b6; --rose:#ff6b8a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:radial-gradient(1000px 500px at 90% -10%,rgba(47,230,182,.07),transparent),var(--bg);
+    color:var(--txt);font-family:'Manrope',system-ui,sans-serif;font-size:15px;line-height:1.65}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 24px 110px}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  header{margin-bottom:40px}
+  .kicker{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:3px;text-transform:uppercase;color:var(--teal-dim)}
+  h1{color:var(--txt-hi);font-size:clamp(26px,4.4vw,40px);font-weight:800;letter-spacing:-.5px;margin:12px 0 8px}
+  .sub{color:var(--muted);max-width:64ch}
+
+  /* overall progress bar */
+  .overall{margin-top:24px;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 20px}
+  .overall .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
+  .overall .top b{color:var(--txt-hi)}
+  .track{height:10px;border-radius:6px;background:#0a1714;overflow:hidden;border:1px solid var(--edge)}
+  .fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--teal-dim),var(--teal));
+    box-shadow:0 0 14px rgba(47,230,182,.5);animation:grow 1.4s ease forwards}
+  @keyframes grow{to{width:var(--w,42%)}}
+
+  /* phase timeline (HERO COMPONENT) */
+  .phase{position:relative;padding:0 0 14px 46px;margin-bottom:8px}
+  .phase::before{content:"";position:absolute;left:15px;top:6px;bottom:-8px;width:2px;background:var(--edge)}
+  .phase:last-child::before{display:none}
+  .phase>.pin{position:absolute;left:0;top:2px;width:32px;height:32px;border-radius:50%;background:var(--panel-2);
+    border:2px solid var(--teal-dim);display:grid;place-items:center;font:700 13px 'JetBrains Mono',monospace;color:var(--teal);z-index:2}
+  .phase.done>.pin{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+  .phase.active>.pin{border-color:var(--teal);box-shadow:0 0 0 4px rgba(47,230,182,.15);animation:beat 2s infinite}
+  @keyframes beat{50%{box-shadow:0 0 0 8px rgba(47,230,182,.05)}}
+  .phase .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:18px 20px;margin-left:4px}
+  .phase.active .card{border-color:var(--teal-dim)}
+  .ph-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .ph-head h3{font-size:17px;color:var(--txt-hi);font-weight:700}
+  .tag{font:600 10.5px/1 'JetBrains Mono',monospace;letter-spacing:.5px;padding:5px 9px;border-radius:20px;border:1px solid currentColor}
+  .tag.t{color:var(--cyan)} .tag.o{color:var(--gold)} .tag.d{color:var(--done)} .tag.now{color:var(--teal);background:rgba(47,230,182,.1)}
+  .ph-desc{color:var(--txt);font-size:14px;margin-bottom:14px}
+
+  /* task checklist */
+  ul.tasks{list-style:none;margin:6px 0 14px}
+  ul.tasks li{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:14px}
+  ul.tasks .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--edge);flex-shrink:0;margin-top:2px;position:relative}
+  ul.tasks li.x .box{background:var(--teal);border-color:var(--teal)}
+  ul.tasks li.x .box::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--bg);font-size:12px;font-weight:800}
+  ul.tasks li.x{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--teal-dim)}
+  ul.tasks li.doing .box{border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,230,182,.12)}
+
+  .note{background:var(--panel-2);border:1px solid var(--edge);border-left:3px solid var(--gold);border-radius:8px;
+    padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--txt)}
+  .note b{color:var(--txt-hi)}
+  code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--cyan)}
+
+  .milestone{display:inline-flex;align-items:center;gap:8px;margin-top:8px;color:var(--gold);font-size:13px;font-weight:600}
+  .milestone::before{content:"◆";color:var(--gold)}
+
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--edge);color:var(--muted);
+    font:500 12px 'JetBrains Mono',monospace;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Implementation Plan · NG-S01 · PEG-3372</div>
+    <h1>Service scaffold &amp; notification/jobs schema</h1>
+    <p class="sub">Walking-skeleton enabler for cp-notification-gateway: scaffold from the HMCTS Spring Boot template, then A-TDD the notification schema and the co-located cp-task-manager <code>jobs</code> table into a single Flyway run. Clean A-TDD from the template; the parked <span class="mono">dev/PEG-3351</span> build is reference-only.</p>
+    <div class="overall" style="--w:60%">
+      <div class="top"><span>Overall progress</span><b>60% · 9 of 15 tasks</b></div>
+      <div class="track"><div class="fill"></div></div>
+    </div>
+  </header>
+
+  <!-- HERO: phase timeline -->
+  <div class="phase done">
+    <div class="pin">1</div>
+    <div class="card">
+      <div class="ph-head"><h3>Scaffold &amp; service identity</h3><span class="tag d">Done</span></div>
+      <div class="ph-desc">Adopt the local template (<span class="mono">service-hmcts-crime-springboot-template@dev/add-bdd-capabilities</span>) as master source — no hand-rolled build/Dockerfile/logback.</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span>Copy template (build.gradle, <code>gradle/*</code>, Dockerfile, CI, logback, acceptance harness) onto <code>dev/PEG-3372</code></li>
+        <li class="x"><span class="box"></span>Rebase package to <code>uk.gov.hmcts.cp.notification</code>; <code>settings.gradle</code> → <code>cp-notification-gateway</code></li>
+        <li class="x"><span class="box"></span>Add runtime deps: JPA, Postgres, Flyway (+postgresql), <code>task-manager-service:1.0.10</code>, jakarta.json</li>
+      </ul>
+      <span class="milestone">Scaffold compiles — <code>compileJava/compileTestJava</code> green</span>
+    </div>
+  </div>
+
+  <div class="phase done">
+    <div class="pin">2</div>
+    <div class="card">
+      <div class="ph-head"><h3>A-TDD — write the failing contract (RED)</h3><span class="tag d">Done</span></div>
+      <div class="ph-desc">Schema ACs are technical (not business behaviour) → integration tests, never Gherkin. One shared Postgres Testcontainer feeds the sanity test <em>and</em> the Cucumber suite (shared setup).</div>
+      <ul class="tasks">
+        <li class="x"><span class="box"></span><code>PostgresContainerSupport</code> (JVM-wide singleton) + <code>AbstractIntegrationTest</code> base</li>
+        <li class="x"><span class="box"></span>Wire sanity <code>ActuatorIntegrationTest</code> + <code>CucumberSpringConfiguration</code> to the shared container</li>
+        <li class="x"><span class="box"></span><code>NotificationSchemaIntegrationTest</code> <span class="mono">@Tag("provisional")</span> — AC-001 columns + AC-001a jobs table</li>
+        <li class="x"><span class="box"></span>Run → notification-columns assertion <b>RED</b>; jobs-table + sanity <b>green</b></li>
+      </ul>
+      <span class="milestone">Contract fixed by a failing test — ready to implement</span>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">3</div>
+    <div class="card">
+      <div class="ph-head"><h3>Implement to GREEN</h3><span class="tag now">In progress</span></div>
+      <div class="ph-desc">Minimal production change to satisfy the failing test — a single Flyway migration plus the persistence config the app needs to run in every environment.</div>
+      <ul class="tasks">
+        <li class="doing"><span class="box"></span><code>db/migration/V1000__create_notification_table.sql</code> — exactly the AC-001 columns (versioned ≥1000 to clear task-manager's V1/V2)</li>
+        <li><span class="box"></span><code>application.yaml</code>: env-driven datasource, <code>jpa.hibernate.ddl-auto: validate</code>, <code>open-in-view: false</code>, Flyway enabled</li>
+        <li><span class="box"></span><code>./gradlew test</code> → all green (schema test flips to pass; jobs + sanity stay green)</li>
+      </ul>
+      <div class="note"><b>AC-001a is delivered by the library, not by us:</b> cp-task-manager's <code>TaskManagerFlywayAutoConfiguration</code> <em>appends</em> <code>classpath:db/taskmanager</code> to the app's Flyway locations (default-on), so one Flyway pass creates both <code>notification</code> and <code>jobs</code> — no <code>spring.flyway.locations</code> entry needed.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="pin">4</div>
+    <div class="card">
+      <div class="ph-head"><h3>Verify &amp; halt at review gate</h3><span class="tag t mono">gate</span></div>
+      <div class="ph-desc">Confirm the DoD, then stop at the Stage 6 human gate — no commit/PR until the user reviews.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>./gradlew build</code> green (PMD, <code>-Werror</code>, jacoco); one Flyway run creates both tables in one datasource</li>
+        <li><span class="box"></span>DoD check: scaffolded via template, no hand-rolled build/Docker/logback; AC-001/AC-001a covered</li>
+        <li><span class="box"></span>Fold <code>NotificationSchemaIntegrationTest</code> into NG-S02's <code>NotificationRepositoryIntegrationTest</code> when it lands (provisional cleanup)</li>
+        <li><span class="box"></span>Halt for code review (Stage 6) — user commits &amp; raises PR</li>
+      </ul>
+      <span class="milestone">Walking skeleton done — every later story builds on this</span>
+    </div>
+  </div>
+
+  <footer>NG-S01 · cp-notification-gateway · A-TDD RED→GREEN · scaffold + notification + co-located jobs (one Flyway run)</footer>
+</div>
+</body>
+</html>
