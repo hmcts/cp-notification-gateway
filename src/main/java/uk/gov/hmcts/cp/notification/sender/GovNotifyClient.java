@@ -8,13 +8,11 @@ import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 @Component
 public class GovNotifyClient implements EmailClient {
     private static final String MATERIAL_URL = "material_url";
-    private static final String CSV_EXTENSION = ".csv";
 
     private final NotificationClient notificationClient;
 
@@ -60,7 +58,7 @@ public class GovNotifyClient implements EmailClient {
         if (attachment != null && attachment.length > 0) {
             try {
                 personalisation.put(MATERIAL_URL,
-                        NotificationClient.prepareUpload(attachment, isCsv(request.attachmentFilename())));
+                        NotificationClient.prepareUpload(attachment, request.attachmentFilename()));
             } catch (final NotificationClientException e) {
                 throw new GovNotifyException(e.getHttpResult(), e.getMessage(), e);
             }
@@ -68,9 +66,6 @@ public class GovNotifyClient implements EmailClient {
         return personalisation;
     }
 
-    private static boolean isCsv(final String filename) {
-        return filename != null && filename.toLowerCase(Locale.ROOT).endsWith(CSV_EXTENSION);
-    }
 
     private static String emailReplyToId(final SendEmailRequest request) {
         return request.replyToAddressId() == null ? "" : request.replyToAddressId().toString();

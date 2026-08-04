@@ -100,21 +100,23 @@ public class SendEmailTask implements ExecutableTask {
             statusService.markFailed(command.notificationId(), HTTP_PAYLOAD_TOO_LARGE, e.getMessage());
             result = completed(executionInfo);
         } catch (final GovNotifyException e) {
-            if (!GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
+            if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
+                if (retriesExhausted(executionInfo)) {
+                    LOG.warn("Send for notification {} still failing transiently (http {}) after exhausting "
+                            + "retries — marking FAILED", command.notificationId(), e.getHttpStatus());
+                    statusService.markFailed(command.notificationId(), e.getHttpStatus(),
+                            "Gov.Notify send did not recover within the retry window");
+                    result = completed(executionInfo);
+                } else {
+                    LOG.warn("Transient send failure for notification {} (http {}) — will retry",
+                            command.notificationId(), e.getHttpStatus());
+                    result = retry(executionInfo);
+                }
+            } else {
                 LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
                         command.notificationId(), e.getHttpStatus());
                 statusService.markFailed(command.notificationId(), e.getHttpStatus(), e.getMessage());
                 result = completed(executionInfo);
-            } else if (retriesExhausted(executionInfo)) {
-                LOG.warn("Send for notification {} still failing transiently (http {}) after exhausting "
-                        + "retries — marking FAILED", command.notificationId(), e.getHttpStatus());
-                statusService.markFailed(command.notificationId(), e.getHttpStatus(),
-                        "Gov.Notify send did not recover within the retry window");
-                result = completed(executionInfo);
-            } else {
-                LOG.warn("Transient send failure for notification {} (http {}) — will retry",
-                        command.notificationId(), e.getHttpStatus());
-                result = retry(executionInfo);
             }
         }
         return result;

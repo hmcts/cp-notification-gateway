@@ -34,15 +34,16 @@ public class EmailSender {
     }
 
     private static String filenameFrom(final String fileUri) {
-        if (fileUri == null || fileUri.isBlank()) {
-            return null;
+        String filename = null;
+        if (fileUri != null && !fileUri.isBlank()) {
+            final String blobName = BlobUrlParts.parse(fileUri).getBlobName();
+            if (blobName != null && !blobName.isBlank()) {
+                final String segment = blobName.substring(blobName.lastIndexOf('/') + 1);
+                if (!segment.isBlank()) {
+                    filename = segment;
+                }
+            }
         }
-        final String blobName = BlobUrlParts.parse(fileUri).getBlobName();
-        if (blobName == null || blobName.isBlank()) {
-            return null;
-        }
-        final int lastSlash = blobName.lastIndexOf('/');
-        final String filename = lastSlash >= 0 ? blobName.substring(lastSlash + 1) : blobName;
-        return filename.isBlank() ? null : filename;
+        return filename;
     }
 }

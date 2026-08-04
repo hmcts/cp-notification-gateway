@@ -14,7 +14,6 @@ import jakarta.json.JsonObject;
 
 import uk.gov.hmcts.cp.notification.sender.GovNotifyClient;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
-import uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier;
 import uk.gov.hmcts.cp.notification.sender.NotificationStatus;
 import uk.gov.hmcts.cp.notification.service.NotificationEmailDetails;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
@@ -101,19 +100,21 @@ public class CheckEmailStatusTask implements ExecutableTask {
     private ExecutionInfo handlePollFailure(
             final UUID notificationId, final ExecutionInfo executionInfo, final GovNotifyException e) {
         final ExecutionInfo result;
-        if (!isTemporary(e.getHttpStatus(), e.getMessage())) {
+        if (isTemporary(e.getHttpStatus(), e.getMessage())) {
+            if (retriesExhausted(executionInfo)) {
+                LOG.warn("Status poll for {} still failing transiently (http {}) after exhausting retries "
+                        + "— marking failed", notificationId, e.getHttpStatus());
+                statusService.markFailed(notificationId, e.getHttpStatus(),
+                        "Gov.Notify status polling did not recover within the retry window");
+                result = completed(executionInfo);
+            } else {
+                LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
+                        notificationId, e.getHttpStatus());
+                result = retry(executionInfo);
+            }
+        } else {
             statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
             result = completed(executionInfo);
-        } else if (retriesExhausted(executionInfo)) {
-            LOG.warn("Status poll for {} still failing transiently (http {}) after exhausting retries "
-                    + "— marking failed", notificationId, e.getHttpStatus());
-            statusService.markFailed(notificationId, e.getHttpStatus(),
-                    "Gov.Notify status polling did not recover within the retry window");
-            result = completed(executionInfo);
-        } else {
-            LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
-                    notificationId, e.getHttpStatus());
-            result = retry(executionInfo);
         }
         return result;
     }

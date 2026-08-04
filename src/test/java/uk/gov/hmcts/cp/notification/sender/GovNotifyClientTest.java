@@ -110,7 +110,7 @@ class GovNotifyClientTest {
         }
 
         @Test
-        void send_encodes_a_csv_attachment_under_material_url_with_is_csv_true() throws Exception {
+        void send_encodes_the_attachment_under_material_url_with_its_filename() throws Exception {
             stubSendReturningExternalId();
 
             govNotifyClient.send(aSendEmailRequest()
@@ -120,11 +120,11 @@ class GovNotifyClientTest {
 
             final JSONObject document = capturedMaterialUrl();
             assertThat(document.has("file")).isTrue();
-            assertThat(document.getBoolean("is_csv")).isTrue();
+            assertThat(document.getString("filename")).isEqualTo("report.csv");
         }
 
         @Test
-        void send_encodes_a_non_csv_attachment_with_is_csv_false() throws Exception {
+        void send_passes_the_attachment_filename_through_for_any_extension() throws Exception {
             stubSendReturningExternalId();
 
             govNotifyClient.send(aSendEmailRequest()
@@ -132,7 +132,7 @@ class GovNotifyClientTest {
                     .attachmentFilename("report.pdf")
                     .build());
 
-            assertThat(capturedMaterialUrl().getBoolean("is_csv")).isFalse();
+            assertThat(capturedMaterialUrl().getString("filename")).isEqualTo("report.pdf");
         }
 
         @Test
