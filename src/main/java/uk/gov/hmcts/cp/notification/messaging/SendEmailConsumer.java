@@ -47,7 +47,7 @@ public class SendEmailConsumer {
         try {
             command = objectMapper.readValue(body, SendEmailCommand.class);
         } catch (final JacksonException e) {
-            LOG.warn("Dead-lettering unparseable message {}: {}", messageId, e.getMessage());
+            LOG.warn("Dead-lettering unparseable message {} (cause: {})", messageId, e.getClass().getSimpleName());
             context.deadLetter();
         }
         return command;
