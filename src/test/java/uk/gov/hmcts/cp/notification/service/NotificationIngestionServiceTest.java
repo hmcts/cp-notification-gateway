@@ -81,6 +81,8 @@ class NotificationIngestionServiceTest {
 
         assertThatThrownBy(() -> service.ingest(aSendEmailCommand().notificationId(id).build(), null))
                 .isInstanceOf(IllegalStateException.class);
+
+        verify(notificationRepository).save(any(NotificationEntity.class));
     }
 
     @Test

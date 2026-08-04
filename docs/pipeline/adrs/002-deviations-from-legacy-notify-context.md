@@ -76,3 +76,28 @@ re-polling forever.
   fire-and-forget + query-for-status model.
 - New deviations discovered in later reviews should be appended as further rows rather than
   scattered across PR comments.
+
+## Testing-strategy deviation — atomicity (NG-S02 DoD)
+
+NG-S02's DoD named a `SendEmailConsumerIntegrationTest.Atomicity` scenario (forced failure between
+INSERT and task-enqueue leaves neither row nor task, message not completed) as a DB-backed integration
+test. We **deliberately do not** add that test — this is a conscious deviation from the DoD, not an
+oversight. What the service actually owns is unit- and boundary-tested:
+
+- **Rollback trigger (exception propagation)** — unit:
+  `NotificationIngestionServiceTest.propagates_the_exception_when_enqueueing_the_send_email_task_fails`
+  (repository `save` succeeds, `ExecutionService.executeWith` throws ⇒ `ingest` propagates; the test
+  asserts the INSERT was attempted first, i.e. the failure occurs *after* the insert).
+- **Message not completed on failure** — boundary IT:
+  `SendEmailConsumerIntegrationTest.abandons_and_redelivers_the_message_when_ingestion_fails` (real ASB
+  emulator: `ingest` throws ⇒ `context.abandon()`, redelivered, never completed).
+- **Physical single-transaction rollback** — Spring `@Transactional(REQUIRED)`:
+  `NotificationIngestionService.ingest` opens the transaction and `cp-task-manager`'s
+  `JobService.insertJob` joins it. This is a framework guarantee and a code-review property, not
+  application logic.
+
+**Why:** a DB-backed rollback assertion verifies Spring's transaction API rather than our code; the
+behaviours that depend on it are already covered above. Our test strategy keeps integration tests at
+the boundaries and behaviour in the BDD suite (one shared cached context); a rollback-atomicity test
+needs a different, transactional test-context bootstrap that adds build time to re-prove a framework
+guarantee. Revisit only if a real rollback defect surfaces that a unit test could not have caught.
