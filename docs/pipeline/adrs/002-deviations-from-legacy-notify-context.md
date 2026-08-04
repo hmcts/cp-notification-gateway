@@ -80,7 +80,13 @@ re-polling forever.
 
 ## Consequences
 
-- **D2 must be fixed** to restore parity — it is a regression, not an intended change.
+- **D2 must be fixed** to restore parity — it is a regression, not an intended change. The in-task
+  exhaustion guard (`retriesExhausted` → `markFailed` + `COMPLETED`) is applied at **all three**
+  in-progress retry sites so no path can leave a notification stuck `QUEUED`:
+  `CheckEmailStatusTask.evaluate` (genuine in-flight status), `CheckEmailStatusTask.handlePollFailure`
+  (transient poll error), and `SendEmailTask.send` (transient send error). Scope boundary: this closes
+  only *terminalisation on exhaustion of the existing `email-durations-secs` bound* — the DLQ/dead-letter
+  mechanism, configurable max-attempts and alerting remain **NG-S11 (FR-020)** scope.
 - **D3 is an accepted, documented divergence** — reviewers should not "restore legacy parity"
   by reverting it. It is correct on the GOV.UK Notify contract and is what makes D2's fix
   effective for terminal statuses.

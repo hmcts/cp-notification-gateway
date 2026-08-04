@@ -143,6 +143,21 @@ class CheckEmailStatusTaskTest {
         }
 
         @Test
+        void should_mark_failed_and_complete_when_the_status_poll_keeps_failing_transiently_until_retries_are_exhausted() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference))
+                    .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
+
+            final ExecutionInfo result = task.execute(checkStatusJobWithRetriesRemaining(id, reference, 0));
+
+            verify(statusService).markFailed(eq(id), eq(500),
+                    eq("Gov.Notify status polling did not recover within the retry window"));
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
         void should_mark_failed_and_complete_when_the_status_poll_fails_permanently() {
             final UUID id = UUID.randomUUID();
             final String reference = "notify-ref-123";

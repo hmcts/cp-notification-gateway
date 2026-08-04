@@ -171,6 +171,20 @@ class SendEmailTaskTest {
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.INPROGRESS);
             assertThat(result.isShouldRetry()).isTrue();
         }
+
+        @Test
+        void should_mark_failed_and_complete_when_send_keeps_failing_transiently_until_retries_are_exhausted() {
+            final UUID id = UUID.randomUUID();
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
+                    .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
+
+            final ExecutionInfo result = task.execute(sendEmailJobWithRetriesRemaining(id, 0));
+
+            verify(statusService).markFailed(eq(id), eq(500),
+                    eq("Gov.Notify send did not recover within the retry window"));
+            verify(executionService, never()).executeWith(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
     }
 
     private ExecutionInfo sendEmailJob(final UUID notificationId, final String fileUri) {
@@ -179,6 +193,16 @@ class SendEmailTaskTest {
                 .withAssignedTaskName(SendEmailTask.TASK_NAME)
                 .withAssignedTaskStartTime(ZonedDateTime.now(ZoneOffset.UTC))
                 .withExecutionStatus(ExecutionStatus.STARTED)
+                .build();
+    }
+
+    private ExecutionInfo sendEmailJobWithRetriesRemaining(final UUID notificationId, final int retriesRemaining) {
+        return ExecutionInfo.executionInfo()
+                .withJobData(commandJobData(notificationId, ""))
+                .withAssignedTaskName(SendEmailTask.TASK_NAME)
+                .withAssignedTaskStartTime(ZonedDateTime.now(ZoneOffset.UTC))
+                .withExecutionStatus(ExecutionStatus.STARTED)
+                .withRetryAttemptsRemaining(retriesRemaining)
                 .build();
     }
 

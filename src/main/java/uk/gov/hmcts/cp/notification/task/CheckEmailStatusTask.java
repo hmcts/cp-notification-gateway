@@ -1,5 +1,6 @@
 package uk.gov.hmcts.cp.notification.task;
 
+import static uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier.isTemporary;
 import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo.executionInfo;
 import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.COMPLETED;
 import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.INPROGRESS;
@@ -100,13 +101,19 @@ public class CheckEmailStatusTask implements ExecutableTask {
     private ExecutionInfo handlePollFailure(
             final UUID notificationId, final ExecutionInfo executionInfo, final GovNotifyException e) {
         final ExecutionInfo result;
-        if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
+        if (!isTemporary(e.getHttpStatus(), e.getMessage())) {
+            statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
+            result = completed(executionInfo);
+        } else if (retriesExhausted(executionInfo)) {
+            LOG.warn("Status poll for {} still failing transiently (http {}) after exhausting retries "
+                    + "— marking failed", notificationId, e.getHttpStatus());
+            statusService.markFailed(notificationId, e.getHttpStatus(),
+                    "Gov.Notify status polling did not recover within the retry window");
+            result = completed(executionInfo);
+        } else {
             LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
                     notificationId, e.getHttpStatus());
             result = retry(executionInfo);
-        } else {
-            statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
-            result = completed(executionInfo);
         }
         return result;
     }

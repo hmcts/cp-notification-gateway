@@ -26,6 +26,15 @@ Feature: Email notification delivery
     And no email is sent via the Gov.UK Notify provider
     And a notification-failed result event is published to the originator's reply queue
 
+  Scenario: A notification the provider reports as permanently failed is recorded as failed and the outcome returned to the originator
+    Given a send-email-notification command for a recipient with an attachment
+    And the provider reports the delivery as permanently failed
+    And the originator provides a reply queue
+    When the gateway processes the command
+    Then the email is sent via the Gov.UK Notify provider
+    And the notification is recorded as FAILED
+    And a notification-failed result event is published to the originator's reply queue
+
   Scenario: A notification with no reply queue completes silently with no result event
     Given a send-email-notification command for a recipient with an attachment
     When the gateway processes the command

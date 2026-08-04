@@ -92,18 +92,29 @@ public class SendEmailTask implements ExecutableTask {
             executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult));
             result = completed(executionInfo);
         } catch (final GovNotifyException e) {
-            if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
-                LOG.warn("Transient send failure for notification {} (http {}) — will retry",
-                        command.notificationId(), e.getHttpStatus());
-                result = retry(executionInfo);
-            } else {
+            if (!GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
                 LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
                         command.notificationId(), e.getHttpStatus());
                 statusService.markFailed(command.notificationId(), e.getHttpStatus(), e.getMessage());
                 result = completed(executionInfo);
+            } else if (retriesExhausted(executionInfo)) {
+                LOG.warn("Send for notification {} still failing transiently (http {}) after exhausting "
+                        + "retries — marking FAILED", command.notificationId(), e.getHttpStatus());
+                statusService.markFailed(command.notificationId(), e.getHttpStatus(),
+                        "Gov.Notify send did not recover within the retry window");
+                result = completed(executionInfo);
+            } else {
+                LOG.warn("Transient send failure for notification {} (http {}) — will retry",
+                        command.notificationId(), e.getHttpStatus());
+                result = retry(executionInfo);
             }
         }
         return result;
+    }
+
+    private static boolean retriesExhausted(final ExecutionInfo executionInfo) {
+        final Integer remaining = executionInfo.getRetryAttemptsRemaining();
+        return remaining != null && remaining <= 0;
     }
 
     @Override

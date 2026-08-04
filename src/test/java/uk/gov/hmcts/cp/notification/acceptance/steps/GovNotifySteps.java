@@ -1,5 +1,6 @@
 package uk.gov.hmcts.cp.notification.acceptance.steps;
 
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,6 +18,11 @@ public class GovNotifySteps {
     private ScenarioContext context;
 
     private final GovUkNotifyStubService govUkNotify = aGovUkNotifyService();
+
+    @Given("the provider reports the delivery as permanently failed")
+    public void the_provider_reports_the_delivery_as_permanently_failed() {
+        govUkNotify.getNotificationStatusWillReturnPermanentFailure(context.getExternalReference());
+    }
 
     @Then("the email is sent via the Gov.UK Notify provider")
     public void the_email_is_sent_via_the_gov_uk_notify_provider() {
