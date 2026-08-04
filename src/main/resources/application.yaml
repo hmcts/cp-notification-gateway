@@ -42,6 +42,11 @@ cp:
       # addressing the command's fileUri directly. Set the connection string only for Azurite/local
       # (emulator-only, NFR-002).
       connection-string: ${CP_NG_BLOB_CONNECTION_STRING:}
+      # Allow-list of storage-account hosts a Managed-Identity token may be sent to (SSRF / token-exfil
+      # guard on the wire-borne fileUri). Comma-separated; set per env/stack in the Helm overlay to that
+      # stack's storage account host(s), e.g. sa<env>filestore.blob.core.windows.net. Empty ->
+      # fail-closed (every host rejected) in Workload-Identity mode; ignored in connection-string mode.
+      allowed-hosts: ${CP_NG_BLOB_ALLOWED_HOSTS:}
     govnotify:
       base-url: ${CP_NG_GOVNOTIFY_BASE_URL:https://api.notifications.service.gov.uk}
       # Gov.Notify API key — injected from Key Vault in deployed environments; never a real key in config.

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.cp.notification.blob;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,8 @@ import static uk.gov.hmcts.cp.notification.integration.stubs.AzureBlobFileStoreS
 class AttachmentDownloaderIntegrationTest {
 
     private final AttachmentDownloader attachmentDownloader =
-            new AttachmentDownloader(new BlobClientFactory(AzuriteContainerSupport.getConnectionString()));
+            new AttachmentDownloader(new BlobClientFactory(
+                    AzuriteContainerSupport.getConnectionString(), new BlobHostValidator(List.of())));
 
     @Test
     void downloads_attachment_bytes_for_a_valid_file_uri() {
