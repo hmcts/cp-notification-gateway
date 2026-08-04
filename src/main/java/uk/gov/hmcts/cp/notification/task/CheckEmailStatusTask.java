@@ -72,15 +72,29 @@ public class CheckEmailStatusTask implements ExecutableTask {
             statusService.markSent(notificationId, emailDetailsFrom(executionInfo.getJobData()));
             result = completed(executionInfo);
         } else if (status.isInProgress()) {
-            LOG.info("Notification {} not yet delivered (status {}) — will re-poll",
-                    notificationId, status.getStatus());
-            result = retry(executionInfo);
+            if (retriesExhausted(executionInfo)) {
+                LOG.warn("Notification {} still not delivered (status {}) after exhausting status-check "
+                        + "retries — marking failed", notificationId, status.getStatus());
+                statusService.markFailed(notificationId, null,
+                        "Gov.Notify did not reach a terminal status within the retry window (last status '"
+                                + status.getStatus() + "')");
+                result = completed(executionInfo);
+            } else {
+                LOG.info("Notification {} not yet delivered (status {}) — will re-poll",
+                        notificationId, status.getStatus());
+                result = retry(executionInfo);
+            }
         } else {
             statusService.markFailed(notificationId, null,
                     "Gov.Notify responded with status '" + status.getStatus() + "'");
             result = completed(executionInfo);
         }
         return result;
+    }
+
+    private static boolean retriesExhausted(final ExecutionInfo executionInfo) {
+        final Integer remaining = executionInfo.getRetryAttemptsRemaining();
+        return remaining != null && remaining <= 0;
     }
 
     private ExecutionInfo handlePollFailure(

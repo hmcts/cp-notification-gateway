@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,22 +37,37 @@ class NotificationStatusTest {
                 "technical-failure,true",
                 "permanent-failure,true",
                 "virus-scan-failed,true",
-                "temporary-failure,false",
+                "temporary-failure,true",
+                "validation-failed,true",
+                "not found,true",
+                "something-unknown,true",
                 "delivered,false",
                 "sending,false",
                 "created,false",
                 "accepted,false",
                 "received,false",
-                "validation-failed,false",
                 "pending-virus-check,false"
         })
-        void classifies_only_the_three_terminal_states_as_failed(final String status, final boolean failed) {
+        void classifies_every_non_delivered_non_inflight_status_as_failed(final String status, final boolean failed) {
             final NotificationStatus notificationStatus = NotificationStatus.fromStatus(status);
 
             final boolean inProgress = !failed && notificationStatus != NotificationStatus.DELIVERED;
 
             assertThat(notificationStatus.isFailed()).isEqualTo(failed);
             assertThat(notificationStatus.isInProgress()).isEqualTo(inProgress);
+        }
+
+        @ParameterizedTest
+        @EnumSource(NotificationStatus.class)
+        void classifies_every_status_into_exactly_one_of_success_in_progress_or_failed(
+                final NotificationStatus status) {
+            final int buckets = (status == NotificationStatus.DELIVERED ? 1 : 0)
+                    + (status.isInProgress() ? 1 : 0)
+                    + (status.isFailed() ? 1 : 0);
+
+            assertThat(buckets)
+                    .as("%s must be classified as exactly one of delivered/in-progress/failed", status)
+                    .isEqualTo(1);
         }
     }
 }

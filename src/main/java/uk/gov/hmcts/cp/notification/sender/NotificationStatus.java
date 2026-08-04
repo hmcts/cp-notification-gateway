@@ -18,8 +18,8 @@ public enum NotificationStatus {
     PENDING_VIRUS_CHECK("pending-virus-check"),
     VIRUS_SCAN_FAILED("virus-scan-failed");
 
-    private static final Set<NotificationStatus> FAILURE_STATES =
-            EnumSet.of(FAILED, VIRUS_SCAN_FAILED, PERMANENT_FAILURE);
+    private static final Set<NotificationStatus> IN_PROGRESS_STATES =
+            EnumSet.of(ACCEPTED, CREATED, SENDING, RECEIVED, PENDING_VIRUS_CHECK);
 
     private final String status;
 
@@ -43,10 +43,10 @@ public enum NotificationStatus {
     }
 
     public boolean isInProgress() {
-        return !isFailed() && this != DELIVERED;
+        return IN_PROGRESS_STATES.contains(this);
     }
 
     public boolean isFailed() {
-        return FAILURE_STATES.contains(this);
+        return this != DELIVERED && !isInProgress();
     }
 }

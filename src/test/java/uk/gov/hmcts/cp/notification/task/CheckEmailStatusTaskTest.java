@@ -95,6 +95,34 @@ class CheckEmailStatusTaskTest {
             verify(statusService, never()).markSent(any(), any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
+
+        @Test
+        void should_mark_failed_and_complete_when_poll_returns_temporary_failure() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.TEMPORARY_FAILURE);
+
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+
+            verify(statusService).markFailed(eq(id), isNull(),
+                    eq("Gov.Notify responded with status 'temporary-failure'"));
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
+        void should_mark_failed_and_complete_when_still_in_progress_but_status_check_retries_are_exhausted() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.SENDING);
+
+            final ExecutionInfo result = task.execute(checkStatusJobWithRetriesRemaining(id, reference, 0));
+
+            verify(statusService).markFailed(eq(id), isNull(),
+                    eq("Gov.Notify did not reach a terminal status within the retry window (last status 'sending')"));
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
     }
 
     @Nested
@@ -135,6 +163,17 @@ class CheckEmailStatusTaskTest {
                 .withAssignedTaskName(CheckEmailStatusTask.TASK_NAME)
                 .withAssignedTaskStartTime(ZonedDateTime.now(ZoneOffset.UTC))
                 .withExecutionStatus(ExecutionStatus.STARTED)
+                .build();
+    }
+
+    private ExecutionInfo checkStatusJobWithRetriesRemaining(
+            final UUID notificationId, final String reference, final int retriesRemaining) {
+        return ExecutionInfo.executionInfo()
+                .withJobData(jobData(notificationId, reference))
+                .withAssignedTaskName(CheckEmailStatusTask.TASK_NAME)
+                .withAssignedTaskStartTime(ZonedDateTime.now(ZoneOffset.UTC))
+                .withExecutionStatus(ExecutionStatus.STARTED)
+                .withRetryAttemptsRemaining(retriesRemaining)
                 .build();
     }
 
