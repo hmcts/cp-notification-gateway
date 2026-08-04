@@ -17,6 +17,7 @@ import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
 import uk.gov.hmcts.cp.notification.sender.EmailSender;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier;
+import uk.gov.hmcts.cp.notification.sender.Office365NotYetSupportedException;
 import uk.gov.hmcts.cp.notification.sender.SendResult;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
@@ -31,6 +32,8 @@ import java.util.Optional;
 @Component
 public class SendEmailTask implements ExecutableTask {
     public static final String TASK_NAME = "SEND_EMAIL";
+
+    private static final int HTTP_PAYLOAD_TOO_LARGE = 413;
 
     private static final Logger LOG = LoggerFactory.getLogger(SendEmailTask.class);
 
@@ -90,6 +93,11 @@ public class SendEmailTask implements ExecutableTask {
         try {
             final SendResult sendResult = emailSender.sendEmail(command, attachment);
             executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult));
+            result = completed(executionInfo);
+        } catch (final Office365NotYetSupportedException e) {
+            LOG.warn("Notification {} requires the Office 365 route (attachment > 2MB) which is not yet "
+                    + "available (NG-S10) — marking FAILED", command.notificationId());
+            statusService.markFailed(command.notificationId(), HTTP_PAYLOAD_TOO_LARGE, e.getMessage());
             result = completed(executionInfo);
         } catch (final GovNotifyException e) {
             if (!GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {

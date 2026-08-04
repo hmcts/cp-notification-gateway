@@ -25,4 +25,20 @@ class EmailClientFactoryTest {
 
         assertThat(senderFactory.selectFor(request)).isSameAs(govNotifyClient);
     }
+
+    @Test
+    void should_route_an_email_to_gov_notify_when_the_attachment_is_at_the_2mb_limit() {
+        final SendEmailRequest request = aSendEmailRequest()
+                .attachment(new byte[EmailClientFactory.GOV_NOTIFY_MAX_ATTACHMENT_2_MB]).build();
+
+        assertThat(senderFactory.selectFor(request)).isSameAs(govNotifyClient);
+    }
+
+    @Test
+    void should_route_an_email_to_office365_when_the_attachment_exceeds_the_2mb_limit() {
+        final SendEmailRequest request = aSendEmailRequest()
+                .attachment(new byte[EmailClientFactory.GOV_NOTIFY_MAX_ATTACHMENT_2_MB + 1]).build();
+
+        assertThat(senderFactory.selectFor(request)).isSameAs(office365Sender);
+    }
 }

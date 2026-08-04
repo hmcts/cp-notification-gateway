@@ -47,6 +47,11 @@ cp:
       # stack's storage account host(s), e.g. sa<env>filestore.blob.core.windows.net. Empty ->
       # fail-closed (every host rejected) in Workload-Identity mode; ignored in connection-string mode.
       allowed-hosts: ${CP_NG_BLOB_ALLOWED_HOSTS:}
+      # Absolute max attachment size (bytes), matching legacy BYTE_LENGTH_15_MB. The attachment is
+      # buffered whole into memory and its size is wire-influenced via the fileUri, so a larger blob is
+      # rejected as a permanent failure BEFORE downloading (OOM guard). Note the 2MB Gov.Notify limit is
+      # a separate, lower routing threshold handled in EmailClientFactory (>2MB -> Office 365, NG-S10).
+      max-attachment-bytes: ${CP_NG_BLOB_MAX_ATTACHMENT_BYTES:15728640}
     govnotify:
       base-url: ${CP_NG_GOVNOTIFY_BASE_URL:https://api.notifications.service.gov.uk}
       # Gov.Notify API key — injected from Key Vault in deployed environments; never a real key in config.

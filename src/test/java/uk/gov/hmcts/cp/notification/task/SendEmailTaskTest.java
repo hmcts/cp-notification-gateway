@@ -18,6 +18,7 @@ import uk.gov.hmcts.cp.notification.blob.PermanentBlobException;
 import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
 import uk.gov.hmcts.cp.notification.sender.EmailSender;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
+import uk.gov.hmcts.cp.notification.sender.Office365NotYetSupportedException;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.notification.time.Clock;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
@@ -154,6 +155,19 @@ class SendEmailTaskTest {
             final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
 
             verify(statusService).markFailed(eq(id), eq(400), eq("bad request"));
+            verify(executionService, never()).executeWith(any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
+        void should_mark_failed_and_complete_when_the_attachment_requires_the_not_yet_supported_office365_route() {
+            final UUID id = UUID.randomUUID();
+            when(emailSender.sendEmail(any(SendEmailCommand.class), any()))
+                    .thenThrow(new Office365NotYetSupportedException("Office 365 route not yet available"));
+
+            final ExecutionInfo result = task.execute(sendEmailJob(id, ""));
+
+            verify(statusService).markFailed(eq(id), eq(413), any());
             verify(executionService, never()).executeWith(any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
