@@ -44,8 +44,20 @@ defines the email delivery statuses as:
 | `permanent-failure` | the email address does not exist; remove it from your DB | no — **Notify's final verdict** | fail → `markFailed` |
 | `temporary-failure` | not delivered (full inbox / anti-spam) after the sending window | no — **Notify's final verdict** (it already retried up to 72h during `sending`) | fail → `markFailed` |
 | `technical-failure` | a problem between Notify and the provider; "you'll have to try sending your messages again" | no — needs a **new send**, not a re-poll | fail → `markFailed` |
-| 404 `NoResultFound` | unknown notification id **or** past the 7-day retention window | no | fail → `markFailed` |
+| 404 `NoResultFound` | unknown notification id **or** past the 7-day retention window | no | fail → `markFailed` (via `GovNotifyFailureClassifier` — see note below) |
 | _(anything else)_ | not part of the contract | n/a | `fromStatus` → `UNEXPECTED_FAILURE` → fail |
+
+**404 is classified permanent in `GovNotifyFailureClassifier`, not just here.** A `NoResultFound`
+surfaces as a `GovNotifyException(404)` from `GovNotifyClient.checkStatus` (and, on the send path,
+would never occur), so it reaches `CheckEmailStatusTask.handlePollFailure` → `isTemporary`. The
+classifier therefore treats `404` as **permanent** alongside `400`/`413` — a re-poll can never make a
+missing/expired id reappear, so retrying it for the whole ~7.6h window is futile. This diverges from
+legacy `FailureSelector` (permanent set was only `{0, 400, 413}`; `404` was temporary), but is what
+makes this table's "404 → fail" handling actually hold on the poll path. **`401`/`403` deliberately
+stay temporary** (legacy parity): a Notify auth/permission failure is almost always a
+credential/config error, and the multi-hour retry window gives ops a chance to fix the key and
+redeploy so the same queued message succeeds on a later retry — terminalising eagerly would throw that
+recovery opportunity away.
 
 **Why re-polling the non-in-flight statuses is futile.** Notify performs its own delivery
 retries (up to 72h) *while the status is `sending`*. Once it settles on
