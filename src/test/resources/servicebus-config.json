@@ -5,7 +5,7 @@
         "Name": "sbemulatorns",
         "Queues": [
           {
-            "Name": "nn-send-email",
+            "Name": "ng-send-email",
             "Properties": {
               "DeadLetteringOnMessageExpiration": true,
               "DefaultMessageTimeToLive": "PT1H",
@@ -16,7 +16,7 @@
             }
           },
           {
-            "Name": "nn-send-email-slice",
+            "Name": "ng-send-email-slice",
             "Properties": {
               "DeadLetteringOnMessageExpiration": true,
               "DefaultMessageTimeToLive": "PT1H",
@@ -27,7 +27,7 @@
             }
           },
           {
-            "Name": "nn-result-correspondence",
+            "Name": "ng-result-correspondence",
             "Properties": {
               "DeadLetteringOnMessageExpiration": true,
               "DefaultMessageTimeToLive": "PT1H",
@@ -38,7 +38,7 @@
             }
           },
           {
-            "Name": "nn-result-slice",
+            "Name": "ng-result-slice",
             "Properties": {
               "DeadLetteringOnMessageExpiration": true,
               "DefaultMessageTimeToLive": "PT1H",

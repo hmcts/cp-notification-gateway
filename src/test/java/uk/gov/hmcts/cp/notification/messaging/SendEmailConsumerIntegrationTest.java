@@ -68,11 +68,11 @@ class SendEmailConsumerIntegrationTest {
                     .notificationId(id)
                     .sendToAddress("user@example.com")
                     .clientContext("mi-reportdata")
-                    .build(), "nn-result-correspondence");
+                    .build(), "ng-result-correspondence");
 
             final ArgumentCaptor<SendEmailCommand> command = ArgumentCaptor.forClass(SendEmailCommand.class);
             verify(ingestionService, timeout(TIMEOUT.toMillis()))
-                    .ingest(command.capture(), eq("nn-result-correspondence"));
+                    .ingest(command.capture(), eq("ng-result-correspondence"));
             assertThat(command.getValue().notificationId()).isEqualTo(id);
             assertThat(command.getValue().sendToAddress()).isEqualTo("user@example.com");
             assertThat(command.getValue().clientContext()).isEqualTo("mi-reportdata");

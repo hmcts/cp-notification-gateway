@@ -50,7 +50,7 @@ class NotificationQueryServiceTest {
                     .statusCode(503)
                     .errorMessage("Attachment not found")
                     .clientContext("mi-reportdata")
-                    .resultQueue("nn-result-correspondence")
+                    .resultQueue("ng-result-correspondence")
                     .createdAt(created)
                     .updatedAt(updated)
                     .build();
@@ -65,7 +65,7 @@ class NotificationQueryServiceTest {
             assertThat(view.statusCode()).isEqualTo(503);
             assertThat(view.errorMessage()).isEqualTo("Attachment not found");
             assertThat(view.clientContext()).isEqualTo("mi-reportdata");
-            assertThat(view.resultQueue()).isEqualTo("nn-result-correspondence");
+            assertThat(view.resultQueue()).isEqualTo("ng-result-correspondence");
             assertThat(view.createdAt()).isEqualTo(created);
             assertThat(view.updatedAt()).isEqualTo(updated);
         }

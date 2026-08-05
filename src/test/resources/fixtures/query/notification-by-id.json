@@ -6,7 +6,7 @@
   "statusCode": 503,
   "errorMessage": "Attachment not found",
   "clientContext": "mi-reportdata",
-  "resultQueue": "nn-result-correspondence",
+  "resultQueue": "ng-result-correspondence",
   "createdAt": "2026-07-01T09:00:00Z",
   "updatedAt": "2026-07-01T09:05:00Z"
 }

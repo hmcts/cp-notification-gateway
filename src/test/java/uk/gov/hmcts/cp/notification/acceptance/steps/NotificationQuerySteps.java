@@ -39,7 +39,7 @@ public class NotificationQuerySteps {
                 .statusCode(503)
                 .errorMessage("Attachment not found")
                 .clientContext("mi-reportdata")
-                .resultQueue("nn-result-correspondence")
+                .resultQueue("ng-result-correspondence")
                 .createdAt(recordedAt)
                 .updatedAt(recordedAt)
                 .build());

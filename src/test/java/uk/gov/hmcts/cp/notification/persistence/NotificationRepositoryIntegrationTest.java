@@ -44,7 +44,7 @@ class NotificationRepositoryIntegrationTest {
                     .notificationId(id)
                     .sendToAddress("recipient@example.com")
                     .clientContext("mi-reportdata")
-                    .resultQueue("nn-result-mi-reportdata")
+                    .resultQueue("ng-result-mi-reportdata")
                     .build());
 
             final NotificationEntity reloaded = notifications.findById(id).orElseThrow();
@@ -52,7 +52,7 @@ class NotificationRepositoryIntegrationTest {
             assertThat(reloaded.getNotificationType()).isEqualTo("EMAIL");
             assertThat(reloaded.getSendToAddress()).isEqualTo("recipient@example.com");
             assertThat(reloaded.getClientContext()).isEqualTo("mi-reportdata");
-            assertThat(reloaded.getResultQueue()).isEqualTo("nn-result-mi-reportdata");
+            assertThat(reloaded.getResultQueue()).isEqualTo("ng-result-mi-reportdata");
         }
 
         @Test

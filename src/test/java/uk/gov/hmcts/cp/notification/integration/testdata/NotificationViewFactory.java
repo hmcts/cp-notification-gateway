@@ -19,7 +19,7 @@ public final class NotificationViewFactory {
                 .statusCode(503)
                 .errorMessage("Attachment not found")
                 .clientContext("mi-reportdata")
-                .resultQueue("nn-result-correspondence")
+                .resultQueue("ng-result-correspondence")
                 .createdAt(OffsetDateTime.parse("2026-07-01T09:00:00Z"))
                 .updatedAt(OffsetDateTime.parse("2026-07-01T09:05:00Z"));
     }

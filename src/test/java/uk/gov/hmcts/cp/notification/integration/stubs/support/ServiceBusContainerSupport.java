@@ -11,10 +11,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class ServiceBusContainerSupport {
-    public static final String COMMAND_QUEUE = "nn-send-email";
-    public static final String SLICE_COMMAND_QUEUE = "nn-send-email-slice";
-    public static final String RESULT_QUEUE = "nn-result-correspondence";
-    public static final String SLICE_RESULT_QUEUE = "nn-result-slice";
+    public static final String COMMAND_QUEUE = "ng-send-email";
+    public static final String SLICE_COMMAND_QUEUE = "ng-send-email-slice";
+    public static final String RESULT_QUEUE = "ng-result-correspondence";
+    public static final String SLICE_RESULT_QUEUE = "ng-result-slice";
 
     // Images are pinned to explicit immutable version tags so the IT suite is reproducible — the floating
     // tags (servicebus-emulator:latest, mssql/server:2025-latest) drift under us and cause spontaneous
