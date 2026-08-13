@@ -34,6 +34,7 @@ tasks.register('integrationTest', Test) {
     includeEngines 'junit-jupiter', 'junit-platform-suite'
   }
   include '**/*IntegrationTest*', '**/AcceptanceTest*'
+  systemProperty 'cp.test.eagerContainers', 'true'
   shouldRunAfter tasks.named('test')
 }
 
@@ -45,22 +46,39 @@ tasks.named('check') {
 tasks.register('testTimingReport') {
   group = 'verification'
   doLast {
+    def slowThresholdSecs = 5.0
     def secsByCategory = [unit: 0d, integration: 0d, acceptance: 0d]
+    def slowTests = []
     def accumulate = { String dirName ->
       def dir = layout.buildDirectory.dir("test-results/${dirName}").get().asFile
       if (!dir.exists()) return
       dir.listFiles({ f -> f.name ==~ /TEST-.*\.xml/ } as FileFilter).each { f ->
-        def secs = (new groovy.xml.XmlSlurper().parse(f).@time.text() ?: '0') as double
+        def suite = new groovy.xml.XmlSlurper().parse(f)
         def acceptance = f.name.contains('.feature') || f.name.contains('AcceptanceTest')
         def category = dirName == 'test' ? 'unit' : (acceptance ? 'acceptance' : 'integration')
-        secsByCategory[category] += secs
+        secsByCategory[category] += (suite.@time.text() ?: '0') as double
+        suite.testcase.each { tc ->
+          def secs = (tc.@time.text() ?: '0') as double
+          if (secs > slowThresholdSecs) {
+            slowTests << [name: "${tc.@classname.text()} > ${tc.@name.text()}", secs: secs]
+          }
+        }
       }
     }
     accumulate('test')
     accumulate('integrationTest')
+    def containerFile = layout.buildDirectory.file('container-startup.seconds').get().asFile
     println '\nTest timing by category:'
-    ['unit', 'integration', 'acceptance'].each { category ->
+    println String.format('  %-12s %6.2fs', 'unit', secsByCategory.unit)
+    if (containerFile.exists()) {
+      println String.format('  %-12s %6.2fs', 'containers', (containerFile.text.trim() ?: '0') as double)
+    }
+    ['integration', 'acceptance'].each { category ->
       println String.format('  %-12s %6.2fs', category, secsByCategory[category])
+    }
+    if (!slowTests.isEmpty()) {
+      println "\nSlow tests (> ${slowThresholdSecs as int}s):  (expected — one-time Spring context build, one per distinct context, charged to its first test)"
+      slowTests.sort { -it.secs }.each { println String.format('  %6.2fs  %s', it.secs, it.name) }
     }
   }
 }

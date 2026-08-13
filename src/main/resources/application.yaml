@@ -36,12 +36,22 @@ cp:
       connection-string: ${CP_NG_SERVICEBUS_CONNECTION_STRING:}
       # Fully-qualified namespace, e.g. my-namespace.servicebus.windows.net (Managed Identity path).
       namespace: ${CP_NG_SERVICEBUS_NAMESPACE:}
-      command-queue: ${CP_NG_SERVICEBUS_COMMAND_QUEUE:nn-send-email}
+      command-queue: ${CP_NG_SERVICEBUS_COMMAND_QUEUE:ng-send-email}
     blob:
       # Empty by default -> AttachmentDownloader uses DefaultAzureCredential (Workload Identity),
       # addressing the command's fileUri directly. Set the connection string only for Azurite/local
       # (emulator-only, NFR-002).
       connection-string: ${CP_NG_BLOB_CONNECTION_STRING:}
+      # Allow-list of storage-account hosts a Managed-Identity token may be sent to (SSRF / token-exfil
+      # guard on the wire-borne fileUri). Comma-separated; set per env/stack in the Helm overlay to that
+      # stack's storage account host(s), e.g. sa<env>filestore.blob.core.windows.net. Empty ->
+      # fail-closed (every host rejected) in Workload-Identity mode; ignored in connection-string mode.
+      allowed-hosts: ${CP_NG_BLOB_ALLOWED_HOSTS:}
+      # Absolute max attachment size (bytes), matching legacy BYTE_LENGTH_15_MB. The attachment is
+      # buffered whole into memory and its size is wire-influenced via the fileUri, so a larger blob is
+      # rejected as a permanent failure BEFORE downloading (OOM guard). Note the 2MB Gov.Notify limit is
+      # a separate, lower routing threshold handled in EmailClientFactory (>2MB -> Office 365, NG-S10).
+      max-attachment-bytes: ${CP_NG_BLOB_MAX_ATTACHMENT_BYTES:15728640}
     govnotify:
       base-url: ${CP_NG_GOVNOTIFY_BASE_URL:https://api.notifications.service.gov.uk}
       # Gov.Notify API key — injected from Key Vault in deployed environments; never a real key in config.
@@ -69,3 +79,4 @@ management:
 logging:
   level:
     root: INFO
+    com.azure: WARN

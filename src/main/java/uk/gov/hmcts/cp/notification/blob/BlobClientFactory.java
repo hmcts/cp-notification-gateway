@@ -17,11 +17,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BlobClientFactory {
     private final String connectionString;
     private final TokenCredential credential;
+    private final BlobHostValidator hostValidator;
     private final Map<String, BlobServiceClient> serviceClientsByAccount = new ConcurrentHashMap<>();
 
     public BlobClientFactory(
-            @Value("${cp.notification.blob.connection-string:}") final String connectionString) {
+            @Value("${cp.notification.blob.connection-string:}") final String connectionString,
+            final BlobHostValidator hostValidator) {
         this.connectionString = connectionString;
+        this.hostValidator = hostValidator;
         this.credential = StringUtils.hasText(connectionString)
                 ? null
                 : new DefaultAzureCredentialBuilder().build();
@@ -29,6 +32,9 @@ public class BlobClientFactory {
 
     public BlobClient blobClientFor(final String fileUri) {
         final BlobUrlParts parts = BlobUrlParts.parse(fileUri);
+        if (credential != null) {
+            hostValidator.validate(parts.getScheme(), parts.getHost());
+        }
         final String accountEndpoint = parts.getScheme() + "://" + parts.getHost();
         final BlobServiceClient serviceClient =
                 serviceClientsByAccount.computeIfAbsent(accountEndpoint, this::buildServiceClient);

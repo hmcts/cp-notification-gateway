@@ -1,0 +1,37 @@
+package uk.gov.hmcts.cp.notification.acceptance.steps;
+
+import io.cucumber.java.en.Then;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import static uk.gov.hmcts.cp.notification.integration.stubs.ResultQueueStubService.aResultQueue;
+import static uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContainerSupport.RESULT_QUEUE;
+
+public class ResultEventSteps {
+
+    @Autowired
+    private ScenarioContext context;
+
+    @Then("a notification-sent result event is published to the originator's reply queue")
+    public void a_notification_sent_result_event_is_published_to_the_reply_queue() {
+        aResultQueue(RESULT_QUEUE)
+                .receivesResultEvent()
+                .withSubject("public.notificationnotify.events.notification-sent")
+                .withField("notificationId", context.getNotificationId())
+                .withField("emailSubject", "Your NCES extract")
+                .withField("emailBody", "Please find your report attached.")
+                .withField("replyToAddress", "noreply@justice.gov.uk");
+    }
+
+    @Then("a notification-failed result event is published to the originator's reply queue")
+    public void a_notification_failed_result_event_is_published_to_the_reply_queue() {
+        aResultQueue(RESULT_QUEUE)
+                .receivesResultEvent()
+                .withSubject("public.notificationnotify.events.notification-failed")
+                .withField("notificationId", context.getNotificationId());
+    }
+
+    @Then("no result event is published")
+    public void no_result_event_is_published() {
+        aResultQueue(RESULT_QUEUE).receivesNoResultEvent();
+    }
+}

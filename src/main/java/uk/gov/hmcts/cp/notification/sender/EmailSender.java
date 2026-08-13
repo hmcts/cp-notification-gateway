@@ -1,5 +1,6 @@
 package uk.gov.hmcts.cp.notification.sender;
 
+import com.azure.storage.blob.BlobUrlParts;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +35,14 @@ public class EmailSender {
 
     private static String filenameFrom(final String fileUri) {
         String filename = null;
-        if (fileUri != null) {
-            final String path = fileUri.split("\\?", 2)[0];
-            final int lastSlash = path.lastIndexOf('/');
-            filename = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
+        if (fileUri != null && !fileUri.isBlank()) {
+            final String blobName = BlobUrlParts.parse(fileUri).getBlobName();
+            if (blobName != null && !blobName.isBlank()) {
+                final String segment = blobName.substring(blobName.lastIndexOf('/') + 1);
+                if (!segment.isBlank()) {
+                    filename = segment;
+                }
+            }
         }
         return filename;
     }

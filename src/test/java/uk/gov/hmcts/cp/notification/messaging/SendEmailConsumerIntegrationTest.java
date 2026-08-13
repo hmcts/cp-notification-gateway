@@ -17,8 +17,10 @@ import uk.gov.hmcts.cp.notification.integration.stubs.support.ServiceBusContaine
 import uk.gov.hmcts.cp.notification.service.NotificationIngestionService;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Map.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +30,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static uk.gov.hmcts.cp.notification.integration.Fixtures.load;
 import static uk.gov.hmcts.cp.notification.integration.stubs.ASBTestClient.anAsbTestClient;
+import static uk.gov.hmcts.cp.notification.integration.stubs.support.ContractSchema.SEND_EMAIL_COMMAND;
+import static uk.gov.hmcts.cp.notification.integration.stubs.support.ContractSchema.assertConformsTo;
 import static uk.gov.hmcts.cp.notification.integration.testdata.SendEmailCommandFactory.aSendEmailCommand;
 
 @SpringBootTest(classes = AsbConsumerSliceConfig.class)
@@ -63,11 +68,11 @@ class SendEmailConsumerIntegrationTest {
                     .notificationId(id)
                     .sendToAddress("user@example.com")
                     .clientContext("mi-reportdata")
-                    .build(), "nn-result-correspondence");
+                    .build(), "ng-result-correspondence");
 
             final ArgumentCaptor<SendEmailCommand> command = ArgumentCaptor.forClass(SendEmailCommand.class);
             verify(ingestionService, timeout(TIMEOUT.toMillis()))
-                    .ingest(command.capture(), eq("nn-result-correspondence"));
+                    .ingest(command.capture(), eq("ng-result-correspondence"));
             assertThat(command.getValue().notificationId()).isEqualTo(id);
             assertThat(command.getValue().sendToAddress()).isEqualTo("user@example.com");
             assertThat(command.getValue().clientContext()).isEqualTo("mi-reportdata");
@@ -116,6 +121,27 @@ class SendEmailConsumerIntegrationTest {
 
             verify(ingestionService, timeout(TIMEOUT.toMillis()).atLeast(2)).ingest(any(), any());
             await().atMost(TIMEOUT).until(() -> asb.peekDeadLetter() != null);
+        }
+    }
+
+    @Nested
+    class ContractConformance {
+
+        @Test
+        void the_command_fixture_with_an_attachment_conforms_to_the_published_contract() {
+            assertConformsTo(SEND_EMAIL_COMMAND, load("fixtures/commands/send-email-with-attachment.json", fixturePlaceHolders()));
+        }
+
+        @Test
+        void the_command_fixture_without_an_attachment_conforms_to_the_published_contract() {
+            assertConformsTo(SEND_EMAIL_COMMAND, load("fixtures/commands/send-email-missing-attachment.json", fixturePlaceHolders()));
+        }
+
+        private Map<String, String> fixturePlaceHolders() {
+            return of(
+                    "notificationId", UUID.randomUUID().toString(),
+                    "templateId", UUID.randomUUID().toString(),
+                    "fileUri", "https://sastefilestore.blob.core.windows.net/steccm13/report.csv");
         }
     }
 }

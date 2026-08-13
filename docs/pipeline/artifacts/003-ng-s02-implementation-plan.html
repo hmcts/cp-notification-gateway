@@ -81,7 +81,7 @@
     <div class="kicker">Implementation Plan · NG-S02 · PEG-3372</div>
     <h1>Core email send — ASB ingest → blob → Gov.Notify → SENT</h1>
     <p class="sub">Turn the RED NG-S02 suite GREEN: consume <code>send-email-notification</code> from the shared
-      <code>nn-send-email</code> queue, persist an atomic QUEUED row + <code>SEND_EMAIL</code> job, download the
+      <code>ng-send-email</code> queue, persist an atomic QUEUED row + <code>SEND_EMAIL</code> job, download the
       attachment from Azure Blob, send via Gov.UK Notify, then poll <code>CHECK_EMAIL_STATUS</code> to drive the row to
       SENT. Credential switches (blob + ASB) let the same code run on Azurite/emulator locally and Managed Identity in AKS.</p>
     <div class="overall" style="--w:100%">

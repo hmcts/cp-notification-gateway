@@ -8,6 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import uk.gov.hmcts.cp.notification.persistence.NotificationEntity;
 import uk.gov.hmcts.cp.notification.persistence.NotificationRepository;
+import uk.gov.hmcts.cp.notification.result.NotificationFailedEvent;
+import uk.gov.hmcts.cp.notification.result.NotificationSentEvent;
+import uk.gov.hmcts.cp.notification.result.ResultEventPublisher;
 import uk.gov.hmcts.cp.notification.time.Clock;
 
 import java.time.OffsetDateTime;
@@ -23,14 +26,16 @@ public class NotificationStatusService {
 
     private final NotificationRepository notificationRepository;
     private final Clock clock;
+    private final ResultEventPublisher resultEventPublisher;
 
     @Transactional
-    public void markSent(final UUID notificationId) {
+    public void markSent(final UUID notificationId, final NotificationEmailDetails emailDetails) {
         final NotificationEntity notification = getById(notificationId);
         notification.setStatus(STATUS_SENT);
         notification.setUpdatedAt(now());
         notificationRepository.save(notification);
         LOG.info("Notification {} marked SENT", notificationId);
+        publishSent(notification, emailDetails);
     }
 
     @Transactional
@@ -42,6 +47,29 @@ public class NotificationStatusService {
         notification.setUpdatedAt(now());
         notificationRepository.save(notification);
         LOG.warn("Notification {} marked FAILED (statusCode={})", notificationId, statusCode);
+        publishFailed(notification);
+    }
+
+    private void publishSent(final NotificationEntity notification, final NotificationEmailDetails emailDetails) {
+        resultEventPublisher.publish(notification.getResultQueue(), NotificationSentEvent.builder()
+                .notificationId(notification.getNotificationId())
+                .sentTime(notification.getUpdatedAt())
+                .sendToAddress(notification.getSendToAddress())
+                .emailSubject(emailDetails.emailSubject())
+                .emailBody(emailDetails.emailBody())
+                .replyToAddress(emailDetails.replyToAddress())
+                .clientContext(notification.getClientContext())
+                .build());
+    }
+
+    private void publishFailed(final NotificationEntity notification) {
+        resultEventPublisher.publish(notification.getResultQueue(), NotificationFailedEvent.builder()
+                .notificationId(notification.getNotificationId())
+                .failedTime(notification.getUpdatedAt())
+                .errorMessage(notification.getErrorMessage())
+                .statusCode(notification.getStatusCode())
+                .clientContext(notification.getClientContext())
+                .build());
     }
 
     private NotificationEntity getById(final UUID notificationId) {

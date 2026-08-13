@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <mdc/>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <pattern>yyyy-MM-dd' 'HH:mm:ss.SSS</pattern>
+                </timestamp>
+                <message/>
+                <loggerName/>
+                <threadName/>
+                <logLevel/>
+                <pattern>
+                    <pattern>{"exception": "%xException{full}"}</pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <logger name="uk.gov.hmcts.cp.notification" level="INFO"/>
+
+    <root level="ERROR">
+        <appender-ref ref="JSON"/>
+    </root>
+</configuration>

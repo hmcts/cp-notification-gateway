@@ -18,7 +18,7 @@ complete send"). Runs against the local emulator/Testcontainers stack (FR-010); 
 in NG-S07/NG-S08.
 
 ## Acceptance criteria
-- [ ] AC-002: Given a `send-email-notification` message on the shared `nn-send-email` command queue,
+- [ ] AC-002: Given a `send-email-notification` message on the shared `ng-send-email` command queue,
   when the service is running, then the `ServiceBusProcessorClient` consumes it and no REST command
   endpoint exists on the service.
 - [ ] AC-003: Given two clients sending to the same command-type queue, when both messages are

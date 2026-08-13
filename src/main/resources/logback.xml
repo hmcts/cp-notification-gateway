@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
@@ -7,7 +8,6 @@
                     <fieldName>timestamp</fieldName>
                     <pattern>yyyy-MM-dd' 'HH:mm:ss.SSS</pattern>
                 </timestamp>
-                <!-- Lets keep the message to the left so its easier to find without scrolling -->
                 <message/>
                 <loggerName/>
                 <threadName/>

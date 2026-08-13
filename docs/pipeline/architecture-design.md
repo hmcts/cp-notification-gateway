@@ -42,7 +42,7 @@ rich aggregate needing replay/audit-by-event — so CQRS/ES is deliberately drop
 - **No cross-context DB reads.** Integration with other contexts is exclusively via ASB messages and a
   cross-context **blob read** (Storage Blob Data Reader on mi-reportdata's container, FR-004/FR-014).
 - **Cross-context touch points:**
-  1. Inbound command from `cpp-context-mi-reportdata` (producer out of scope) → shared queue `nn-send-email`.
+  1. Inbound command from `cpp-context-mi-reportdata` (producer out of scope) → shared queue `ng-send-email`.
   2. Attachment bytes read from mi-reportdata's Azure Blob container by `fileUri` (cross-context RBAC).
   3. Outbound result event → the inbound message's `ReplyTo` queue (none for the mi-reportdata MVP —
      fire-and-forget).
@@ -72,7 +72,7 @@ rich aggregate needing replay/audit-by-event — so CQRS/ES is deliberately drop
 ### Contracts
 
 **Commands**
-- `send-email-notification` — inbound, shared **command queue per command type** `nn-send-email`
+- `send-email-notification` — inbound, shared **command queue per command type** `ng-send-email`
   (FR-003; not per-client). A single shared queue serves all clients; there is **no per-originator
   routing** — the optional `clientContext` field is a passthrough for result-event parity, not a
   routing key.
@@ -138,7 +138,7 @@ flowchart LR
     B[(report CSV)]
   end
   subgraph asb[Azure Service Bus namespace]
-    CQ[[nn-send-email queue]]
+    CQ[[ng-send-email queue]]
     RQ[[ReplyTo result queue<br/>none for MVP]]
     DLQ[[DLQ]]
   end
@@ -172,7 +172,7 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   participant MI as mi-reportdata
-  participant CQ as ASB nn-send-email
+  participant CQ as ASB ng-send-email
   participant CO as Consumer
   participant DB as Postgres (notification+jobs)
   participant TM as cp-task-manager
@@ -223,6 +223,13 @@ sequenceDiagram
   rides `job_data` (missing → regenerate), whereas the ASB `ReplyTo` is **notification-scoped, has no
   regenerate fallback, and is read at the terminal hop** — so it is persisted on the row
   (`result_queue`), not carried in `job_data`.
+- **Email-detail fields (result-event parity):** `emailSubject`/`emailBody`/`replyToAddress`/
+  `sendToAddress` for the `notification-sent` event come from the provider **send response**, captured
+  at send time and carried across the async hop in the `check-email-status` **message envelope**
+  (`job_data`), then consumed by `markSent()` — mirroring legacy `ExtractedSendEmailResponse` →
+  `ExternalIdentifier` job state → `CompleteHandler.markAsSent(...)` → `Notification.notificationSent()`.
+  Like `correlationId` they ride the envelope (a lost optional degrades to absent); unlike `result_queue`
+  they are **not** persisted on the row and **not** re-read from Gov.Notify at poll.
 - **Dual-write atomicity (Q-delegated #4):** the ingest path is **atomic** — the `notification`
   INSERT and the cp-task-manager task enqueue commit in **one local transaction** on the co-located
   datasource (FR-002/NFR-010), and ASB redelivery + `notificationId` PK dedupe cover a crash between DB
@@ -313,7 +320,7 @@ sequenceDiagram
 
 ### Follow-ups
 - **C4 model:** add container `cp-notification-gateway` to `cp-c4-architecture` with relations:
-  `mi-reportdata → nn-send-email (ASB)`, `gateway → Gov.UK Notify`, `gateway → O365/APIM`,
+  `mi-reportdata → ng-send-email (ASB)`, `gateway → Gov.UK Notify`, `gateway → O365/APIM`,
   `gateway → Azure Blob (mi-reportdata container, cross-context read)`, `gateway → ReplyTo queue`,
   `gateway → Postgres`, and the retirement of `cpp-context-notification-notify`.
 - **ADRs recommended:**

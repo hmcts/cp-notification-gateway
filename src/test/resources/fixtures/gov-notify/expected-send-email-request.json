@@ -6,7 +6,9 @@
     "recipient_name": "Alex Morgan",
     "material_url": {
       "file": "${json-unit.ignore}",
-      "is_csv": true
+      "filename": "report-${notificationId}.csv",
+      "confirm_email_before_download": null,
+      "retention_period": null
     }
   }
 }

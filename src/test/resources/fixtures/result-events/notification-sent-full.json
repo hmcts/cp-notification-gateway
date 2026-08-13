@@ -1,0 +1,10 @@
+{
+  "notificationId": "11111111-1111-1111-1111-111111111111",
+  "sentTime": "2026-07-20T10:15:30Z",
+  "completedAt": "2026-07-20T10:15:31Z",
+  "sendToAddress": "recipient@example.com",
+  "replyToAddress": "noreply@justice.gov.uk",
+  "emailSubject": "Your NCES extract",
+  "emailBody": "Please find your report attached.",
+  "clientContext": "mi-reportdata"
+}

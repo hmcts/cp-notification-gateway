@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static uk.gov.hmcts.cp.notification.integration.testdata.SendEmailCommandFactory.aSendEmailCommand;
+import static uk.gov.hmcts.cp.notification.integration.testdata.SendResultFactory.aSendResult;
 
 @ExtendWith(MockitoExtension.class)
 class CpTaskFactoryTest {
@@ -52,14 +53,26 @@ class CpTaskFactoryTest {
     }
 
     @Test
-    void builds_a_check_status_job_carrying_the_notification_id_and_reference() {
+    void builds_a_check_status_job_carrying_the_notification_id_reference_and_captured_email_details() {
         final UUID id = UUID.randomUUID();
         final String reference = "1490dab7-2b48-4a9a-9f8a-2f0d0e2e6b11";
 
-        final ExecutionInfo job = taskFactory.createCheckStatusJob(aSendEmailCommand().notificationId(id).build(), reference);
+        final ExecutionInfo job = taskFactory.createCheckStatusJob(
+                aSendEmailCommand().notificationId(id).build(),
+                aSendResult()
+                        .reference(reference)
+                        .emailSubject("Your NCES extract")
+                        .emailBody("Please find your report attached.")
+                        .replyToAddress("noreply@justice.gov.uk")
+                        .build());
 
         assertThat(job.getAssignedTaskName()).isEqualTo(CheckEmailStatusTask.TASK_NAME);
         assertThat(job.getExecutionStatus()).isEqualTo(ExecutionStatus.STARTED);
-        assertThat(job.getJobData().toString()).contains(id.toString()).contains(reference);
+        assertThat(job.getJobData().toString())
+                .contains(id.toString())
+                .contains(reference)
+                .contains("Your NCES extract")
+                .contains("Please find your report attached.")
+                .contains("noreply@justice.gov.uk");
     }
 }

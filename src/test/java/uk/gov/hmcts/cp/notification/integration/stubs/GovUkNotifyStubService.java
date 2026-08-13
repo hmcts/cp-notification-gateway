@@ -44,13 +44,20 @@ public final class GovUkNotifyStubService {
 
     public GovUkNotifyStubService sendEmailNotificationWillReturnSuccess(final String externalReference) {
         WireMockSupport.wiremockServer().stubFor(post(urlPathEqualTo(SEND_EMAIL_PATH))
-                .willReturn(jsonResponse(201, "gov-notify/send-email-success.json", externalReference)));
+                .willReturn(jsonResponse(201, "fixtures/gov-notify/send-email-success.json", externalReference)));
         return this;
     }
 
     public GovUkNotifyStubService getNotificationStatusWillReturnSuccess(final String externalReference) {
         WireMockSupport.wiremockServer().stubFor(get(urlPathEqualTo(STATUS_PATH_PREFIX + externalReference))
-                .willReturn(jsonResponse(200, "gov-notify/status-delivered.json", externalReference)));
+                .willReturn(jsonResponse(200, "fixtures/gov-notify/status-delivered.json", externalReference)));
+        return this;
+    }
+
+    public GovUkNotifyStubService getNotificationStatusWillReturnPermanentFailure(final String externalReference) {
+        WireMockSupport.wiremockServer().stubFor(get(urlPathEqualTo(STATUS_PATH_PREFIX + externalReference))
+                .atPriority(1)
+                .willReturn(jsonResponse(200, "fixtures/gov-notify/status-permanent-failure.json", externalReference)));
         return this;
     }
 

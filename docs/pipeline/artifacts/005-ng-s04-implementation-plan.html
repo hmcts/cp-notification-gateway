@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- claude-artifact: created=2026-07-24 project=cp-notification-gateway kind=report -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NG-S04 — Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#071210; --panel:#0c1c19; --panel-2:#103029; --edge:#1d4038;
+    --txt:#9fc7bd; --txt-hi:#e8fff7; --muted:#5f857b;
+    --teal:#2fe6b6; --teal-dim:#179e7c; --cyan:#46d6ff; --gold:#ffce5c; --done:#2fe6b6; --rose:#ff6b8a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:radial-gradient(1000px 500px at 90% -10%,rgba(47,230,182,.07),transparent),var(--bg);
+    color:var(--txt);font-family:'Manrope',system-ui,sans-serif;font-size:15px;line-height:1.65}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 24px 110px}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  header{margin-bottom:40px}
+  .kicker{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:3px;text-transform:uppercase;color:var(--teal-dim)}
+  h1{color:var(--txt-hi);font-size:clamp(26px,4.4vw,40px);font-weight:800;letter-spacing:-.5px;margin:12px 0 8px}
+  .sub{color:var(--muted);max-width:70ch}
+
+  .overall{margin-top:24px;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 20px}
+  .overall .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px}
+  .overall .top b{color:var(--txt-hi)}
+  .track{height:10px;border-radius:6px;background:#0a1714;overflow:hidden;border:1px solid var(--edge)}
+  .fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--teal-dim),var(--teal));
+    box-shadow:0 0 14px rgba(47,230,182,.5);animation:grow 1.4s ease forwards}
+  @keyframes grow{to{width:var(--w,42%)}}
+
+  .phase{position:relative;padding:0 0 14px 46px;margin-bottom:8px}
+  .phase::before{content:"";position:absolute;left:15px;top:6px;bottom:-8px;width:2px;background:var(--edge)}
+  .phase:last-child::before{display:none}
+  .phase>.pin{position:absolute;left:0;top:2px;width:32px;height:32px;border-radius:50%;background:var(--panel-2);
+    border:2px solid var(--teal-dim);display:grid;place-items:center;font:700 13px 'JetBrains Mono',monospace;color:var(--teal);z-index:2}
+  .phase.done>.pin{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+  .phase.active>.pin{border-color:var(--teal);box-shadow:0 0 0 4px rgba(47,230,182,.15);animation:beat 2s infinite}
+  @keyframes beat{50%{box-shadow:0 0 0 8px rgba(47,230,182,.05)}}
+  .phase .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:18px 20px;margin-left:4px}
+  .phase.active .card{border-color:var(--teal-dim)}
+  .ph-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .ph-head h3{font-size:17px;color:var(--txt-hi);font-weight:700}
+  .tag{font:600 10.5px/1 'JetBrains Mono',monospace;letter-spacing:.5px;padding:5px 9px;border-radius:20px;border:1px solid currentColor}
+  .tag.t{color:var(--cyan)} .tag.o{color:var(--gold)} .tag.d{color:var(--done)} .tag.now{color:var(--teal);background:rgba(47,230,182,.1)}
+  .ph-desc{color:var(--txt);font-size:14px;margin-bottom:14px}
+
+  ul.tasks{list-style:none;margin:6px 0 14px}
+  ul.tasks li{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:14px}
+  ul.tasks .box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--edge);flex-shrink:0;margin-top:2px;position:relative}
+  ul.tasks li.x .box{background:var(--teal);border-color:var(--teal)}
+  ul.tasks li.x .box::after{content:"\2713";position:absolute;inset:0;display:grid;place-items:center;color:var(--bg);font-size:12px;font-weight:800}
+  ul.tasks li.x{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--teal-dim)}
+
+  .note{background:var(--panel-2);border:1px solid var(--edge);border-left:3px solid var(--gold);border-radius:8px;
+    padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--txt)}
+  .note b{color:var(--txt-hi)}
+  .note.crit{border-left-color:var(--rose)}
+  code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--cyan)}
+
+  table.map{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:13px}
+  table.map th,table.map td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--edge);vertical-align:top}
+  table.map th{color:var(--teal-dim);font:700 11px 'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+  table.map td.ac{color:var(--gold);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+  table.map td code{color:var(--cyan)}
+
+  .milestone{display:inline-flex;align-items:center;gap:8px;margin-top:8px;color:var(--gold);font-size:13px;font-weight:600}
+  .milestone::before{content:"\25C6";color:var(--gold)}
+
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--edge);color:var(--muted);
+    font:500 12px 'JetBrains Mono',monospace;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Implementation Plan · NG-S04 · PEG-3383</div>
+    <h1>Read-only notification query API — secure-by-default, deny-all</h1>
+    <p class="sub">Turn the RED NG-S04 suite GREEN: a hand-written read-only REST API over the
+      <code>notification</code> table — <code>GET /notifications/{notificationId}</code> (all columns; 404 when
+      absent) and a paged <code>GET /notifications?status=&amp;createdFrom=&amp;createdTo=&amp;page=&amp;size=</code>
+      search — exposing a local <code>NotificationView</code> DTO (camelCase JSON) whose shape conforms to
+      <code>contracts/openapi/notification-gateway.openapi.yaml</code>. Interim posture: served <b>open
+      (permit-all) in every profile</b>, clearly commented as open until NG-S14 adds authentication. Built per
+      the chosen <b>Option B</b> (hand-written controller + local DTO) — no generated interface, no ADR.</p>
+    <div class="overall" style="--w:100%">
+      <div class="top"><span>Class-by-class plan</span><b>4 prod classes + advice + SecurityConfig · 2 ACs · conformance · 4 param-400s · 1 BDD</b></div>
+      <div class="track"><div class="fill"></div></div>
+    </div>
+  </header>
+
+  <div class="phase active">
+    <div class="pin">1</div>
+    <div class="card">
+      <div class="ph-head"><h3>NotificationView DTO (all columns, camelCase)</h3><span class="tag now">Build</span><span class="tag t mono">AC-017</span></div>
+      <div class="ph-desc">A local, immutable view type exposing every column of the <code>notification</code> table. Record-style accessors and a Lombok builder are pinned by the tests and the fixture.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>web/NotificationView</code> — a Java <code>record</code> annotated <code>@Builder</code>; components <code>notificationId</code>(UUID), <code>notificationType</code>, <code>status</code>, <code>sendToAddress</code>, <code>statusCode</code>(Integer), <code>errorMessage</code>, <code>clientContext</code>, <code>resultQueue</code>, <code>createdAt</code>/<code>updatedAt</code>(OffsetDateTime)</li>
+        <li><span class="box"></span>Lombok emits <code>NotificationView.builder() -&gt; NotificationViewBuilder</code> — the exact type <code>NotificationViewFactory.aNotificationView()</code> returns</li>
+        <li><span class="box"></span>Record accessors <code>view.notificationId()</code> … <code>view.updatedAt()</code> satisfy <code>NotificationQueryServiceTest</code>; component names serialise as camelCase JSON keys (Jackson default)</li>
+      </ul>
+      <div class="note"><b>Contract shape.</b> Required vs nullable mirrors the spec's <code>NotificationView</code> schema: required <code>notificationId/notificationType/status/createdAt/updatedAt</code>; nullable <code>sendToAddress/statusCode/errorMessage/clientContext/resultQueue</code>. Plain record (no <code>@JsonInclude</code>) — nulls serialise as JSON null, which the <code>nullable:true</code> schema accepts, and the test data is all-non-null so the fixture matches. <b>Jackson 3:</b> <code>OffsetDateTime</code> → ISO-8601 (<code>2026-07-01T09:00:00Z</code>). <b>Option B:</b> DTO is local, not generated; contract-first migration tracked as debt in <code>query-api-implementation.md</code>.</div>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">2</div>
+    <div class="card">
+      <div class="ph-head"><h3>NotificationRepository.search (nullable filters, paged)</h3><span class="tag now">Build</span><span class="tag t mono">AC-018</span></div>
+      <div class="ph-desc">Add a paged search to the existing Spring Data repository — status + created-range filters, all nullable, returning a page of entities.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>persistence/NotificationRepository</code> — add <code>Page&lt;NotificationEntity&gt; search(String status, OffsetDateTime from, OffsetDateTime to, Pageable pageable)</code></li>
+        <li><span class="box"></span><code>@Query</code> with null-guarded predicates: <code>(:status is null or status = :status) and (:from is null or createdAt &gt;= :from) and (:to is null or createdAt &lt;= :to)</code></li>
+        <li><span class="box"></span>Proven by <code>NotificationRepositoryIntegrationTest.Search</code> over Testcontainers Postgres — only the in-range FAILED row is returned</li>
+      </ul>
+      <div class="note"><b>Parameterised query, no string concatenation</b> (OWASP injection, NFR-006). Bind params only; nullable filters handled in-clause so a single method serves id-less, status-less and range-less callers.</div>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">3</div>
+    <div class="card">
+      <div class="ph-head"><h3>NotificationQueryService (entity → view mapping)</h3><span class="tag now">Build</span><span class="tag t mono">AC-017/018</span></div>
+      <div class="ph-desc">Thin read service that owns entity→view mapping and delegates lookup/search to the repository. No I/O beyond the repository; no write paths.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>service/NotificationQueryService</code> — <code>@Service</code>, constructor-injected <code>NotificationRepository notifications</code> (field name aligns with <code>@InjectMocks</code>)</li>
+        <li><span class="box"></span><code>Optional&lt;NotificationView&gt; findById(UUID)</code> → <code>notifications.findById(id).map(this::toView)</code></li>
+        <li><span class="box"></span><code>Page&lt;NotificationView&gt; search(String, OffsetDateTime, OffsetDateTime, Pageable)</code> → <code>notifications.search(...).map(this::toView)</code></li>
+        <li><span class="box"></span><code>private NotificationView toView(NotificationEntity)</code> — copies all ten columns into the builder</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">4</div>
+    <div class="card">
+      <div class="ph-head"><h3>NotificationQueryController + validation advice</h3><span class="tag now">Build</span><span class="tag t mono">AC-017/018 · conformance · 400s · NFR-004</span></div>
+      <div class="ph-desc">Hand-written <code>@GetMapping</code>s (Option B) on <code>/notifications</code>: single lookup + paged search, with Jakarta param constraints mirroring the spec. No write mappings → 405 automatically.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>web/NotificationQueryController</code> — <code>@RestController @Validated @RequestMapping("/notifications")</code>, constructor-injected <code>NotificationQueryService</code></li>
+        <li><span class="box"></span><code>@GetMapping("/{notificationId}")</code> → <code>findById</code>; present → <code>ResponseEntity.ok(view)</code>, empty → <code>notFound().build()</code> (<b>404</b>, empty body so the spec's content-less 404 conforms)</li>
+        <li><span class="box"></span><code>@GetMapping</code> search — <code>@RequestParam(required=false) @Pattern(regexp="QUEUED|SENT|FAILED") String status</code>; <code>createdFrom/createdTo</code> as <code>@DateTimeFormat(iso=DATE_TIME) OffsetDateTime</code>; <code>@RequestParam(defaultValue="0") @Min(0) int page</code>; <code>@RequestParam(defaultValue="20") @Min(1) @Max(200) int size</code> → <code>PageRequest.of(page,size)</code>, returns <code>Page&lt;NotificationView&gt;</code> (<code>content</code> array conforms to <code>NotificationPage</code>)</li>
+        <li><span class="box"></span>No POST/PUT/PATCH/DELETE mappings → <b>405</b> before the controller runs (<code>verifyNoInteractions</code> holds)</li>
+        <li><span class="box"></span><code>web/QueryApiExceptionHandler</code> — <code>@RestControllerAdvice</code> mapping <code>ConstraintViolationException</code> (and <code>MethodArgumentTypeMismatchException</code>) → <b>400</b>, status-code-only body</li>
+      </ul>
+      <div class="note crit"><b>The 400 crux.</b> Type-mismatch (bad <code>createdFrom</code>/UUID) is 400 automatically, but <code>@Min/@Max/@Pattern</code> on request params throw a bare <code>ConstraintViolationException</code> → <b>500</b> unless handled — the four <code>SearchParameterValidation</code> tests fail without the advice. <code>@Validated</code> on the class arms method-param validation; the advice maps the violation to 400. <b>NFR-004:</b> the handler logs no PII/params/values and returns no stack trace or entity dump.</div>
+    </div>
+  </div>
+
+  <div class="phase active">
+    <div class="pin">5</div>
+    <div class="card">
+      <div class="ph-head"><h3>SecurityConfig — interim permit-all + deps</h3><span class="tag now">Build</span><span class="tag o mono">interim · until NG-S14</span></div>
+      <div class="ph-desc">Add <code>spring-boot-starter-security</code> and an interim permit-all filter chain, active in every profile and clearly commented as open until NG-S14 delivers authentication. No profile split, no deny — the deny posture was descoped to NG-S14.</div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>build.gradle</code> — add <code>implementation 'org.springframework.boot:spring-boot-starter-security'</code> (<code>spring-boot-starter-validation</code> already present; <code>swagger-request-validator-mockmvc</code> already a test dep)</li>
+        <li><span class="box"></span><code>web/SecurityConfig</code> — <code>@Configuration @EnableWebSecurity</code>; single <code>SecurityFilterChain</code> = <code>anyRequest().permitAll()</code>, CSRF disabled, stateless; actuator permitted too; comment marks it open until NG-S14</li>
+      </ul>
+      <div class="note"><b>Why permit-all, all profiles.</b> The secure-by-default deny posture and its auth pattern moved to NG-S14; the deny integration test was removed. Adding the starter with an explicit permit-all chain makes Boot's default (secure) chain back off, so the full-context sanity/BDD suite and <code>/actuator/*</code> behave exactly as their tests expect — served open. The controller/conformance slices use <code>addFilters=false</code> and are unaffected either way.</div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="pin">6</div>
+    <div class="card">
+      <div class="ph-head"><h3>Verify GREEN &amp; refactor</h3><span class="tag t mono">run</span></div>
+      <ul class="tasks">
+        <li><span class="box"></span><code>NotificationRepositoryIntegrationTest</code> — save/read-back + status/date-range search (Testcontainers Postgres)</li>
+        <li><span class="box"></span><code>NotificationQueryServiceTest</code> — all-column mapping, empty lookup, filtered+paged search</li>
+        <li><span class="box"></span><code>NotificationQueryControllerIntegrationTest</code> — 200 all-columns fixture, 404, filter/paging delegation, 405 on write verbs, 4× <code>SearchParameterValidation</code> 400s</li>
+        <li><span class="box"></span><code>NotificationQueryOpenApiConformanceTest</code> — lookup/404/search responses conform to <code>contracts/openapi/notification-gateway.openapi.yaml</code></li>
+        <li><span class="box"></span><code>notification-query.feature</code> — operator looks up by id and searches by status+creation date (served open)</li>
+        <li><span class="box"></span><code>./gradlew test</code> — full suite green; then refactor (SRP: controller / service / mapper-in-service / repository), re-run</li>
+      </ul>
+      <span class="milestone">Read-only query API green — served open until NG-S14, no other suite regressed</span>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="pin">7</div>
+    <div class="card">
+      <div class="ph-head"><h3>AC → class mapping</h3><span class="tag t mono">traceability</span></div>
+      <table class="map">
+        <tr><th>AC / concern</th><th>Behaviour</th><th>Class(es)</th></tr>
+        <tr><td class="ac">AC-017</td><td>Lookup by id returns all <code>notification</code> columns; 404 when absent</td><td><code>NotificationQueryController</code> · <code>NotificationQueryService</code> · <code>NotificationView</code></td></tr>
+        <tr><td class="ac">AC-018</td><td>Read-only paged search by status + created range; write verbs rejected (405), no side effects</td><td><code>NotificationQueryController</code> · <code>NotificationQueryService</code> · <code>NotificationRepository.search</code></td></tr>
+        <tr><td class="ac">conformance</td><td>Lookup/404/search responses conform to the published OpenAPI contract</td><td><code>NotificationView</code> · <code>NotificationQueryController</code> vs <code>contracts/openapi/…yaml</code></td></tr>
+        <tr><td class="ac">param 400s</td><td>Negative page / oversize / bad date / unknown status → 400</td><td><code>NotificationQueryController</code> (constraints) · <code>QueryApiExceptionHandler</code></td></tr>
+        <tr><td class="ac">interim</td><td>Served open (permit-all) in every profile until NG-S14 adds auth</td><td><code>SecurityConfig</code> + <code>spring-boot-starter-security</code></td></tr>
+        <tr><td class="ac">BDD</td><td>Operator retrieves full record and finds it by status + creation date</td><td><code>notification-query.feature</code> · <code>NotificationQuerySteps</code></td></tr>
+        <tr><td class="ac">NFR-004/006</td><td>No PII/secrets logged; parameterised query; status-code-only errors</td><td>controller · advice · <code>NotificationRepository.search</code></td></tr>
+      </table>
+      <div class="note"><b>Out of scope (per story + Option B):</b> authentication/authorisation and the secure-by-default deny posture (both NG-S14), any write/command endpoint, <code>sendToAddress</code>-based filtering, and the generated-interface / <code>apiSpec</code> gate migration — tracked as debt in <code>query-api-implementation.md</code>. No ADR for the hand-written-controller deviation (explicit coordinator instruction). The API is served open now; NG-S14 replaces the interim permit-all chain with real auth.</div>
+    </div>
+  </div>
+
+  <footer>NG-S04 · cp-notification-gateway · A-TDD RED→GREEN · read-only query API · interim permit-all until NG-S14 · Option B</footer>
+</div>
+</body>
+</html>

@@ -57,7 +57,7 @@ class NotificationIngestionServiceTest {
                 .notificationId(id)
                 .sendToAddress("user@example.com")
                 .clientContext("mi-reportdata")
-                .build(), "nn-result-correspondence");
+                .build(), "ng-result-correspondence");
 
         final ArgumentCaptor<NotificationEntity> saved = ArgumentCaptor.forClass(NotificationEntity.class);
         verify(notificationRepository).save(saved.capture());
@@ -65,7 +65,7 @@ class NotificationIngestionServiceTest {
         assertThat(saved.getValue().getNotificationType()).isEqualTo("EMAIL");
         assertThat(saved.getValue().getSendToAddress()).isEqualTo("user@example.com");
         assertThat(saved.getValue().getClientContext()).isEqualTo("mi-reportdata");
-        assertThat(saved.getValue().getResultQueue()).isEqualTo("nn-result-correspondence");
+        assertThat(saved.getValue().getResultQueue()).isEqualTo("ng-result-correspondence");
 
         final ArgumentCaptor<ExecutionInfo> job = ArgumentCaptor.forClass(ExecutionInfo.class);
         verify(executionService).executeWith(job.capture());
@@ -81,6 +81,8 @@ class NotificationIngestionServiceTest {
 
         assertThatThrownBy(() -> service.ingest(aSendEmailCommand().notificationId(id).build(), null))
                 .isInstanceOf(IllegalStateException.class);
+
+        verify(notificationRepository).save(any(NotificationEntity.class));
     }
 
     @Test

@@ -8,3 +8,4 @@ ADR if one is adopted) and remove it from here.
 |---|---|---|
 | [Query-API authentication](query-api-authentication.md) (NG-S04 / FR-024) | ⏳ Decision pending | Exposure & day-one consumer (Pattern 1 vs 2) |
 | [Attachment `fileName` validation](attachment-filename-validation.md) | ⏳ Decision pending | Where to validate (message vs blob HEAD) + fatal vs fallback |
+| [Query-API implementation approach](query-api-implementation.md) (NG-S04 / FR-009) | ✅ Decided — Option B (hand-written controller, no ADR; contract-first migration debt tracked) | — |

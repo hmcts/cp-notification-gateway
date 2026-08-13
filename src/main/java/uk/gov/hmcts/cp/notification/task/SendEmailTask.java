@@ -1,9 +1,6 @@
 package uk.gov.hmcts.cp.notification.task;
 
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo.executionInfo;
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.COMPLETED;
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.INPROGRESS;
-
+import com.azure.storage.blob.models.BlobStorageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,8 +14,8 @@ import uk.gov.hmcts.cp.notification.command.SendEmailCommand;
 import uk.gov.hmcts.cp.notification.sender.EmailSender;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier;
+import uk.gov.hmcts.cp.notification.sender.Office365NotYetSupportedException;
 import uk.gov.hmcts.cp.notification.sender.SendResult;
-import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
 import uk.gov.hmcts.cp.taskmanager.service.ExecutionService;
 import uk.gov.hmcts.cp.taskmanager.service.task.ExecutableTask;
@@ -32,11 +29,13 @@ import java.util.Optional;
 public class SendEmailTask implements ExecutableTask {
     public static final String TASK_NAME = "SEND_EMAIL";
 
+    private static final int HTTP_PAYLOAD_TOO_LARGE = 413;
+
     private static final Logger LOG = LoggerFactory.getLogger(SendEmailTask.class);
 
     private final AttachmentDownloader attachmentDownloader;
     private final EmailSender emailSender;
-    private final NotificationStatusService statusService;
+    private final TransientFailurePolicy failurePolicy;
     private final ExecutionService executionService;
     private final ObjectMapper objectMapper;
     private final CpTaskFactory taskFactory;
@@ -45,14 +44,14 @@ public class SendEmailTask implements ExecutableTask {
     public SendEmailTask(
             final AttachmentDownloader attachmentDownloader,
             final EmailSender emailSender,
-            final NotificationStatusService statusService,
+            final TransientFailurePolicy failurePolicy,
             final ExecutionService executionService,
             final ObjectMapper objectMapper,
             final CpTaskFactory taskFactory,
             @Value("${cp.notification.retry.email-durations-secs}") final List<Long> retryDurationsSecs) {
         this.attachmentDownloader = attachmentDownloader;
         this.emailSender = emailSender;
-        this.statusService = statusService;
+        this.failurePolicy = failurePolicy;
         this.executionService = executionService;
         this.objectMapper = objectMapper;
         this.taskFactory = taskFactory;
@@ -63,15 +62,16 @@ public class SendEmailTask implements ExecutableTask {
     public ExecutionInfo execute(final ExecutionInfo executionInfo) {
         final SendEmailCommand command = objectMapper.readValue(
                 executionInfo.getJobData().toString(), SendEmailCommand.class);
-
         ExecutionInfo result;
         try {
             result = send(command, downloadAttachment(command), executionInfo);
         } catch (final PermanentBlobException e) {
             LOG.warn("Permanent attachment failure for notification {} — marking FAILED, no retry",
                     command.notificationId());
-            statusService.markFailed(command.notificationId(), e.getStatusCode(), e.getMessage());
-            result = completed(executionInfo);
+            result = failurePolicy.fail(command.notificationId(), e.getStatusCode(), e.getMessage(), executionInfo);
+        } catch (final BlobStorageException e) {
+            result = failurePolicy.retryOrFail(command.notificationId(), e.getStatusCode(),
+                    "Attachment download did not recover within the retry window", executionInfo);
         }
         return result;
     }
@@ -89,18 +89,20 @@ public class SendEmailTask implements ExecutableTask {
         ExecutionInfo result;
         try {
             final SendResult sendResult = emailSender.sendEmail(command, attachment);
-            executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult.reference()));
-            result = completed(executionInfo);
+            executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult));
+            result = TransientFailurePolicy.completed(executionInfo);
+        } catch (final Office365NotYetSupportedException e) {
+            LOG.warn("Notification {} requires the Office 365 route (attachment > 2MB) which is not yet "
+                    + "available (NG-S10) — marking FAILED", command.notificationId());
+            result = failurePolicy.fail(command.notificationId(), HTTP_PAYLOAD_TOO_LARGE, e.getMessage(), executionInfo);
         } catch (final GovNotifyException e) {
             if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
-                LOG.warn("Transient send failure for notification {} (http {}) — will retry",
-                        command.notificationId(), e.getHttpStatus());
-                result = retry(executionInfo);
+                result = failurePolicy.retryOrFail(command.notificationId(), e.getHttpStatus(),
+                        "Gov.Notify send did not recover within the retry window", executionInfo);
             } else {
                 LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
                         command.notificationId(), e.getHttpStatus());
-                statusService.markFailed(command.notificationId(), e.getHttpStatus(), e.getMessage());
-                result = completed(executionInfo);
+                result = failurePolicy.fail(command.notificationId(), e.getHttpStatus(), e.getMessage(), executionInfo);
             }
         }
         return result;
@@ -109,16 +111,5 @@ public class SendEmailTask implements ExecutableTask {
     @Override
     public Optional<List<Long>> getRetryDurationsInSecs() {
         return Optional.of(retryDurationsSecs);
-    }
-
-    private static ExecutionInfo completed(final ExecutionInfo executionInfo) {
-        return executionInfo().from(executionInfo).withExecutionStatus(COMPLETED).build();
-    }
-
-    private static ExecutionInfo retry(final ExecutionInfo executionInfo) {
-        return executionInfo().from(executionInfo)
-                .withExecutionStatus(INPROGRESS)
-                .withShouldRetry(true)
-                .build();
     }
 }

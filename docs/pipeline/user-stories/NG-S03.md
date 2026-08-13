@@ -27,8 +27,9 @@ NG-S02.
   `ReplyTo` queue):
   - `notification-sent`: verbatim copy of the internal event — `notificationId` (required), `sentTime`
     (required), plus `completedAt`/`sendToAddress`/`replyToAddress`/`emailSubject`/`emailBody`/
-    `clientContext` when present; `emailSubject`/`emailBody`/`replyToAddress` sourced from the Gov.Notify
-    send response.
+    `clientContext` when present; `emailSubject`/`emailBody`/`replyToAddress` are captured from the
+    Gov.Notify send response **at send time** and carried forward to the terminal hop (see Notes —
+    "Email-detail fields"), **not** re-read from Gov.Notify at poll and **not** sourced from `markSent()`.
   - `notification-failed`: hand-built — always `notificationId`/`failedTime`/`errorMessage`; adds
     `statusCode`/`clientContext` only if present; drops `failedTask`; no nulls emitted.
   - Both: `additionalProperties: false` — no extra fields.
@@ -66,6 +67,20 @@ NG-S02.
   it is read for free alongside the state-transition guard load. Naming: column/field `result_queue`
   (the wire property stays the standard ASB `ReplyTo`); kept distinct from the Gov.Notify **email**
   `replyToAddress` to avoid confusion.
+- **Email-detail fields are captured-at-send, carried-in-envelope, consumed-at-terminal (legacy parity).**
+  `emailSubject`/`emailBody`/`replyToAddress`/`sendToAddress` originate from the provider **send
+  response** (Gov.Notify `SendEmailResponse`, or the parsed O365 response), **not** from the inbound
+  command and **not** from a later Gov.Notify poll. Legacy captures them at send into
+  `ExtractedSendEmailResponse` (`EmailSender.getExtractedSendEmailResponse`), threads them across the
+  async hop inside the next task's job state (`SendEmailTask` → `ExternalIdentifier` /
+  `NotificationJobState`), then reads them back at completion to build the payload (`CompleteHandler` →
+  `markAsSent(id, NotificationEmailDetails)` → `Notification.notificationSent()`). The MbD port keeps
+  this shape: capture from the send response, carry them in the ASB `check-email-status` **message
+  envelope** (the analogue of the legacy job state), and pass them into `markSent()`. **Contrast with
+  `result_queue`:** these email fields ride the envelope (like `correlationId` — a lost optional
+  degrades gracefully to absent), whereas the routing target is persisted on the row because it has no
+  regenerate fallback. This is why AC-016 marks the trio "when present". Because the send handler only
+  *captures* the response it already receives, this needs no change to NG-S02's core send logic.
 - **FR/AC traceability:** FR-007 → AC-014, AC-015; FR-008 → AC-016. **FR-010 → AC-019** partially
   covered here (result-queue-message sub-scenario) — see `_index.md` for the full breakdown across
   NG-S02/NG-S03/NG-S10/NG-S11/NG-S12.

@@ -14,3 +14,13 @@ management:
 job:
   executor:
     poll-interval: 200
+
+# @SpringBootTest activates Spring Boot's LoggingApplicationListener, which re-applies logging.level
+# from config onto the logback context at startup — overriding logback-test.xml's root=ERROR with the
+# root=INFO from application.yaml (leaking HikariCP/Tomcat INFO). Re-assert the quiet levels here so the
+# Spring-managed override matches logback-test.xml: everything ERROR, this application at INFO.
+logging:
+  level:
+    root: ERROR
+    uk.gov.hmcts.cp.notification: INFO
+    com.azure: ERROR

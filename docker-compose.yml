@@ -28,3 +28,7 @@ services:
       CP_NG_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationgateway
       CP_NG_DATASOURCE_USERNAME: notificationgateway
       CP_NG_DATASOURCE_PASSWORD: notificationgateway
+      # Gov.Notify key is mandatory to boot (GovNotifyConfig fails fast on a blank key). This is a
+      # non-functional Gov.Notify TEST-key placeholder so the app starts for local runs and the DAST
+      # scan; no real notifications are sent (no Service Bus is wired here). Real keys come from Key Vault.
+      CP_NG_GOVNOTIFY_API_KEY: cpngtest-00000000-0000-0000-0000-000000000000-11111111-1111-1111-1111-111111111111

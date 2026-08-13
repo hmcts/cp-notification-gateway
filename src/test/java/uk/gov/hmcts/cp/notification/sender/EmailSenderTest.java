@@ -60,4 +60,79 @@ class EmailSenderTest {
         verify(senderFactory).selectFor(requestCaptor.capture());
         assertThat(requestCaptor.getValue().attachment()).isNull();
     }
+
+    @Test
+    void derives_the_attachment_filename_from_the_last_segment_of_the_blob_uri() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri(
+                "https://sa.blob.core.windows.net/mi-reportdata/2026/07/report.csv").build(), someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isEqualTo("report.csv");
+    }
+
+    @Test
+    void percent_decodes_the_attachment_filename() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri(
+                "https://sa.blob.core.windows.net/mi-reportdata/report%20final.csv").build(), someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isEqualTo("report final.csv");
+    }
+
+    @Test
+    void ignores_the_sas_query_string_when_deriving_the_attachment_filename() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri(
+                "https://sa.blob.core.windows.net/mi-reportdata/report.csv?sv=2020-04-08&sig=abc%3D").build(),
+                someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isEqualTo("report.csv");
+    }
+
+    @Test
+    void derives_no_attachment_filename_when_the_file_uri_is_blank() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri("  ").build(), someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isNull();
+    }
+
+    @Test
+    void derives_no_attachment_filename_when_the_uri_addresses_a_container_with_no_blob() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri(
+                "https://sa.blob.core.windows.net/mi-reportdata").build(), someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isNull();
+    }
+
+    @Test
+    void derives_no_attachment_filename_when_the_blob_name_is_a_directory_marker() {
+        stubClient();
+
+        emailSender.sendEmail(aSendEmailCommand().fileUri(
+                "https://sa.blob.core.windows.net/mi-reportdata/2026/07/").build(), someAttachment());
+
+        verify(senderFactory).selectFor(requestCaptor.capture());
+        assertThat(requestCaptor.getValue().attachmentFilename()).isNull();
+    }
+
+    private void stubClient() {
+        when(senderFactory.selectFor(any(SendEmailRequest.class))).thenReturn(emailClient);
+        when(emailClient.send(any(SendEmailRequest.class))).thenReturn(aSendResult().build());
+    }
+
+    private static byte[] someAttachment() {
+        return "report".getBytes(StandardCharsets.UTF_8);
+    }
 }

@@ -12,6 +12,6 @@ class Office365ClientTest {
     @Test
     void send_is_not_yet_supported() {
         assertThatThrownBy(() -> sender.send(aSendEmailRequest().build()))
-                .isInstanceOf(UnsupportedOperationException.class);
+                .isInstanceOf(Office365NotYetSupportedException.class);
     }
 }

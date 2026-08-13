@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyClient;
 import uk.gov.hmcts.cp.notification.sender.GovNotifyException;
 import uk.gov.hmcts.cp.notification.sender.NotificationStatus;
+import uk.gov.hmcts.cp.notification.service.NotificationEmailDetails;
 import uk.gov.hmcts.cp.notification.service.NotificationStatusService;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo;
 import uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus;
@@ -44,7 +45,8 @@ class CheckEmailStatusTaskTest {
 
     @BeforeEach
     void setUp() {
-        task = new CheckEmailStatusTask(govNotifyClient, statusService, LEGACY_EMAIL_RETRY_DURATIONS);
+        task = new CheckEmailStatusTask(govNotifyClient, statusService,
+                new TransientFailurePolicy(statusService), LEGACY_EMAIL_RETRY_DURATIONS);
     }
 
     @Test
@@ -56,14 +58,15 @@ class CheckEmailStatusTaskTest {
     class WhenPollingSucceeds {
 
         @Test
-        void should_mark_sent_when_poll_returns_delivered() {
+        void should_mark_sent_with_the_captured_email_details_when_poll_returns_delivered() {
             final UUID id = UUID.randomUUID();
             final String reference = "notify-ref-123";
             when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.DELIVERED);
 
             final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
-            verify(statusService).markSent(id);
+            verify(statusService).markSent(id, new NotificationEmailDetails(
+                    "Your NCES extract", "Please find your report attached.", "noreply@justice.gov.uk"));
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
 
@@ -90,7 +93,35 @@ class CheckEmailStatusTaskTest {
 
             verify(statusService).markFailed(eq(id), isNull(),
                     eq("Gov.Notify responded with status 'permanent-failure'"));
-            verify(statusService, never()).markSent(any());
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
+        void should_mark_failed_and_complete_when_poll_returns_temporary_failure() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.TEMPORARY_FAILURE);
+
+            final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
+
+            verify(statusService).markFailed(eq(id), isNull(),
+                    eq("Gov.Notify responded with status 'temporary-failure'"));
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
+        void should_mark_failed_and_complete_when_still_in_progress_but_status_check_retries_are_exhausted() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference)).thenReturn(NotificationStatus.SENDING);
+
+            final ExecutionInfo result = task.execute(checkStatusJobWithRetriesRemaining(id, reference, 0));
+
+            verify(statusService).markFailed(eq(id), isNull(),
+                    eq("Gov.Notify did not reach a terminal status within the retry window (last status 'sending')"));
+            verify(statusService, never()).markSent(any(), any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
     }
@@ -113,6 +144,21 @@ class CheckEmailStatusTaskTest {
         }
 
         @Test
+        void should_mark_failed_and_complete_when_the_status_poll_keeps_failing_transiently_until_retries_are_exhausted() {
+            final UUID id = UUID.randomUUID();
+            final String reference = "notify-ref-123";
+            when(govNotifyClient.checkStatus(reference))
+                    .thenThrow(new GovNotifyException(500, "Gov.Notify unavailable", null));
+
+            final ExecutionInfo result = task.execute(checkStatusJobWithRetriesRemaining(id, reference, 0));
+
+            verify(statusService).markFailed(eq(id), eq(500),
+                    eq("Gov.Notify status polling did not recover within the retry window"));
+            verify(statusService, never()).markSent(any(), any());
+            assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
+        }
+
+        @Test
         void should_mark_failed_and_complete_when_the_status_poll_fails_permanently() {
             final UUID id = UUID.randomUUID();
             final String reference = "notify-ref-123";
@@ -122,7 +168,7 @@ class CheckEmailStatusTaskTest {
             final ExecutionInfo result = task.execute(checkStatusJob(id, reference));
 
             verify(statusService).markFailed(id, 400, "bad request");
-            verify(statusService, never()).markSent(any());
+            verify(statusService, never()).markSent(any(), any());
             assertThat(result.getExecutionStatus()).isEqualTo(ExecutionStatus.COMPLETED);
         }
     }
@@ -136,10 +182,24 @@ class CheckEmailStatusTaskTest {
                 .build();
     }
 
+    private ExecutionInfo checkStatusJobWithRetriesRemaining(
+            final UUID notificationId, final String reference, final int retriesRemaining) {
+        return ExecutionInfo.executionInfo()
+                .withJobData(jobData(notificationId, reference))
+                .withAssignedTaskName(CheckEmailStatusTask.TASK_NAME)
+                .withAssignedTaskStartTime(ZonedDateTime.now(ZoneOffset.UTC))
+                .withExecutionStatus(ExecutionStatus.STARTED)
+                .withRetryAttemptsRemaining(retriesRemaining)
+                .build();
+    }
+
     private static JsonObject jobData(final UUID notificationId, final String reference) {
         return Json.createObjectBuilder()
                 .add(CheckEmailStatusTask.KEY_NOTIFICATION_ID, notificationId.toString())
                 .add(CheckEmailStatusTask.KEY_REFERENCE, reference)
+                .add(CheckEmailStatusTask.KEY_EMAIL_SUBJECT, "Your NCES extract")
+                .add(CheckEmailStatusTask.KEY_EMAIL_BODY, "Please find your report attached.")
+                .add(CheckEmailStatusTask.KEY_REPLY_TO_ADDRESS, "noreply@justice.gov.uk")
                 .build();
     }
 }
