@@ -61,10 +61,6 @@ cp:
       # notify.email.retry.threshold.durations. Overridable per environment without a redeploy.
       email-durations-secs: ${CP_NG_EMAIL_RETRY_DURATIONS_SECS:60,300,1800,3600,7200,14400}
 
-azure:
-  application-insights:
-    instrumentation-key: ${rpe.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
-
 management:
   endpoints:
     web:
