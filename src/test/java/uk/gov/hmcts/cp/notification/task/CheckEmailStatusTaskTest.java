@@ -45,7 +45,8 @@ class CheckEmailStatusTaskTest {
 
     @BeforeEach
     void setUp() {
-        task = new CheckEmailStatusTask(govNotifyClient, statusService, LEGACY_EMAIL_RETRY_DURATIONS);
+        task = new CheckEmailStatusTask(govNotifyClient, statusService,
+                new TransientFailurePolicy(statusService), LEGACY_EMAIL_RETRY_DURATIONS);
     }
 
     @Test

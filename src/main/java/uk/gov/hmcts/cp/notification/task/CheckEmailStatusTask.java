@@ -1,12 +1,7 @@
 package uk.gov.hmcts.cp.notification.task;
 
 import static uk.gov.hmcts.cp.notification.sender.GovNotifyFailureClassifier.isTemporary;
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionInfo.executionInfo;
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.COMPLETED;
-import static uk.gov.hmcts.cp.taskmanager.domain.ExecutionStatus.INPROGRESS;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -35,18 +30,19 @@ public class CheckEmailStatusTask implements ExecutableTask {
     public static final String KEY_EMAIL_BODY = "emailBody";
     public static final String KEY_REPLY_TO_ADDRESS = "replyToAddress";
 
-    private static final Logger LOG = LoggerFactory.getLogger(CheckEmailStatusTask.class);
-
     private final GovNotifyClient govNotifyClient;
     private final NotificationStatusService statusService;
+    private final TransientFailurePolicy failurePolicy;
     private final List<Long> retryDurationsSecs;
 
     public CheckEmailStatusTask(
             final GovNotifyClient govNotifyClient,
             final NotificationStatusService statusService,
+            final TransientFailurePolicy failurePolicy,
             @Value("${cp.notification.retry.email-durations-secs}") final List<Long> retryDurationsSecs) {
         this.govNotifyClient = govNotifyClient;
         this.statusService = statusService;
+        this.failurePolicy = failurePolicy;
         this.retryDurationsSecs = retryDurationsSecs;
     }
 
@@ -55,68 +51,35 @@ public class CheckEmailStatusTask implements ExecutableTask {
         final UUID notificationId =
                 UUID.fromString(executionInfo.getJobData().getString(KEY_NOTIFICATION_ID));
         final String reference = executionInfo.getJobData().getString(KEY_REFERENCE);
-
-        ExecutionInfo result;
         try {
-            result = evaluate(govNotifyClient.checkStatus(reference), notificationId, executionInfo);
+            return evaluate(govNotifyClient.checkStatus(reference), notificationId, executionInfo);
         } catch (final GovNotifyException e) {
-            result = handlePollFailure(notificationId, executionInfo, e);
+            return handlePollFailure(notificationId, executionInfo, e);
         }
-        return result;
     }
 
     private ExecutionInfo evaluate(
             final NotificationStatus status, final UUID notificationId, final ExecutionInfo executionInfo) {
-        final ExecutionInfo result;
         if (status == NotificationStatus.DELIVERED) {
             statusService.markSent(notificationId, emailDetailsFrom(executionInfo.getJobData()));
-            result = completed(executionInfo);
-        } else if (status.isInProgress()) {
-            if (retriesExhausted(executionInfo)) {
-                LOG.warn("Notification {} still not delivered (status {}) after exhausting status-check "
-                        + "retries — marking failed", notificationId, status.getStatus());
-                statusService.markFailed(notificationId, null,
-                        "Gov.Notify did not reach a terminal status within the retry window (last status '"
-                                + status.getStatus() + "')");
-                result = completed(executionInfo);
-            } else {
-                LOG.info("Notification {} not yet delivered (status {}) — will re-poll",
-                        notificationId, status.getStatus());
-                result = retry(executionInfo);
-            }
-        } else {
-            statusService.markFailed(notificationId, null,
-                    "Gov.Notify responded with status '" + status.getStatus() + "'");
-            result = completed(executionInfo);
+            return TransientFailurePolicy.completed(executionInfo);
         }
-        return result;
-    }
-
-    private static boolean retriesExhausted(final ExecutionInfo executionInfo) {
-        final Integer remaining = executionInfo.getRetryAttemptsRemaining();
-        return remaining != null && remaining <= 0;
+        if (status.isInProgress()) {
+            return failurePolicy.retryOrFail(notificationId, null,
+                    "Gov.Notify did not reach a terminal status within the retry window (last status '"
+                            + status.getStatus() + "')", executionInfo);
+        }
+        return failurePolicy.fail(notificationId, null,
+                "Gov.Notify responded with status '" + status.getStatus() + "'", executionInfo);
     }
 
     private ExecutionInfo handlePollFailure(
             final UUID notificationId, final ExecutionInfo executionInfo, final GovNotifyException e) {
-        final ExecutionInfo result;
         if (isTemporary(e.getHttpStatus(), e.getMessage())) {
-            if (retriesExhausted(executionInfo)) {
-                LOG.warn("Status poll for {} still failing transiently (http {}) after exhausting retries "
-                        + "— marking failed", notificationId, e.getHttpStatus());
-                statusService.markFailed(notificationId, e.getHttpStatus(),
-                        "Gov.Notify status polling did not recover within the retry window");
-                result = completed(executionInfo);
-            } else {
-                LOG.warn("Transient error polling status for {} (http {}) — will re-poll",
-                        notificationId, e.getHttpStatus());
-                result = retry(executionInfo);
-            }
-        } else {
-            statusService.markFailed(notificationId, e.getHttpStatus(), e.getMessage());
-            result = completed(executionInfo);
+            return failurePolicy.retryOrFail(notificationId, e.getHttpStatus(),
+                    "Gov.Notify status polling did not recover within the retry window", executionInfo);
         }
-        return result;
+        return failurePolicy.fail(notificationId, e.getHttpStatus(), e.getMessage(), executionInfo);
     }
 
     private static NotificationEmailDetails emailDetailsFrom(final JsonObject jobData) {
@@ -129,16 +92,5 @@ public class CheckEmailStatusTask implements ExecutableTask {
     @Override
     public Optional<List<Long>> getRetryDurationsInSecs() {
         return Optional.of(retryDurationsSecs);
-    }
-
-    private static ExecutionInfo completed(final ExecutionInfo executionInfo) {
-        return executionInfo().from(executionInfo).withExecutionStatus(COMPLETED).build();
-    }
-
-    private static ExecutionInfo retry(final ExecutionInfo executionInfo) {
-        return executionInfo().from(executionInfo)
-                .withExecutionStatus(INPROGRESS)
-                .withShouldRetry(true)
-                .build();
     }
 }
