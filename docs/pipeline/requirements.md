@@ -107,8 +107,8 @@ routed; see the note under Milestone 6.
 
 | ID | Requirement | Priority | Repo references | Jira |
 |----|-------------|----------|-----------------|------|
-| FR-013 | Authenticate all ASB access (consume + send) via **managed-identity RBAC** using `DefaultAzureCredential` (Azure Service Bus Data Receiver + Data Sender at **namespace** scope). No SAS token, no connection string in prod (emulator connection string permitted for local/test only). | Must | • **svc** (auth code)<br>• RBAC role assignments ← `cpp-helm-chart` (`ccm-namespace`/`mi.yaml`), `cpp-aks-deploy` (`ccm_workload_identities`) | PEG-3364 |
-| FR-014 | Provision the service's own per-context managed identity with RBAC: Azure Service Bus Data Receiver + Data Sender (namespace scope), Storage Blob Data Reader on the attachment container(s), and Key Vault Secrets User (read-only) for non-ASB secrets (e.g. Gov.Notify API key). No ASB SAS secret in Key Vault. | Must | • `cpp-helm-chart` (`ccm-namespace`/`mi.yaml`)<br>• `cpp-aks-deploy` (`ccm_workload_identities` + Key Vault CSI)<br>• pattern ← `cpp-context-reference-data` (UC1) | PEG-3365 |
+| FR-013 | Authenticate all ASB access (consume + send) via **managed-identity RBAC** using `DefaultAzureCredential` (Azure Service Bus Data Receiver + Data Sender at **queue (entity)** scope — least-privilege; `ReplyTo` resolves to the single provisioned result queue). No SAS token, no connection string in prod (emulator connection string permitted for local/test only). | Must | • **svc** (auth code)<br>• RBAC role assignments ← `cpp-helm-chart` (`ccm-namespace`/`mi.yaml`), `cpp-aks-deploy` (`ccm_workload_identities`) | PEG-3364 |
+| FR-014 | Provision the service's own per-context managed identity with RBAC: Azure Service Bus Data Receiver + Data Sender (queue (entity) scope), Storage Blob Data Reader on the attachment container(s), and Key Vault Secrets User (read-only) for non-ASB secrets (e.g. Gov.Notify API key). No ASB SAS secret in Key Vault. | Must | • `cpp-helm-chart` (`ccm-namespace`/`mi.yaml`)<br>• `cpp-aks-deploy` (`ccm_workload_identities` + Key Vault CSI)<br>• pattern ← `cpp-context-reference-data` (UC1) | PEG-3365 |
 | FR-015 | Provision the ASB namespace + command/result queues and assign the two ASB role assignments to the managed identity (Platform request, matching the Flux/idam model). | Must | `cpp-helm-chart` (`ccm-namespace`, ASO `servicebus.azure.com` CRDs) — else Platform (out-of-band) / `cpp-module-terraform-azurerm-servicebus` (see OQ-1) | PEG-3366 |
 | FR-016 | Provision the Postgres database/schema across environments via ops/IaC. | Must | • `cpp-aks-deploy` (env group_vars / priming)<br>• `devops` DB tooling | PEG-3367 |
 | FR-017 | Deploy to STE via **Flux CD GitOps** using the shared `springboot-app` Helm chart (HelmRelease + values/identity/secretProvider in the Flux config repo); legacy `cpp-aks-deploy` (ADO + Helmsman) is not used. | Must | • `cpp-flux-config` (HelmRelease)<br>• `cpp-helm-chart` (`springboot-app` chart)<br>• `cpp-aks-deploy` (identity/RBAC + Key Vault CSI)<br>• pattern ← `cpp-mbd-idam-integration` | PEG-3368 |
@@ -206,10 +206,10 @@ routed; see the note under Milestone 6.
 
 ### FR-013 — Managed-identity RBAC for ASB
 - AC-022: Given the service running in a non-emulator environment, when it connects to ASB, then it uses `DefaultAzureCredential` and no SAS token or connection string is present in config, env vars, or Helm values.
-- AC-023: Given the managed identity, when RBAC is inspected, then it holds Azure Service Bus Data Receiver + Data Sender at namespace scope (not queue/entity scope).
+- AC-023: Given the managed identity, when RBAC is inspected, then it holds Azure Service Bus Data Receiver on the command queue (`ng-send-email`) + Data Sender on the result queue (`mi-reportdata-notification-result`) at queue (entity) scope (least-privilege, not namespace scope); the set of `ReplyTo` values must stay within the granted queue(s).
 
 ### FR-014 / FR-015 — Identity + ASB provisioning
-- AC-024: Given the deployed identity, when RBAC is listed, then it holds ASB Data Receiver + Data Sender (namespace), Storage Blob Data Reader on the attachment container(s) (including mi-reportdata's, cross-context), and Key Vault Secrets User — and no ASB SAS secret exists in Key Vault.
+- AC-024: Given the deployed identity, when RBAC is listed, then it holds ASB Data Receiver + Data Sender (queue (entity) scope), Storage Blob Data Reader on the attachment container(s) (including mi-reportdata's, cross-context), and Key Vault Secrets User — and no ASB SAS secret exists in Key Vault.
 - AC-025: Given the ASB namespace, when provisioned, then the command and result queues exist and the identity's role assignments are present.
 
 ### FR-017 — Flux CD deployment
@@ -310,8 +310,9 @@ Required set (`notificationId`, `templateId`, `sendToAddress`) and `additionalPr
 - **Behavioural contract:** result-event names/payloads, sender routing, and retry/poll timings must
   not change (golden-master parity).
 - **ASB routing model:** shared command queue **per command type** (not per client) inbound;
-  per-originator result queues outbound; namespace-scoped ASB RBAC (queue/entity scope would break
-  dynamic `ReplyTo` routing).
+  per-originator result queues outbound; queue-scoped ASB RBAC (Data Receiver on the command queue +
+  Data Sender on each provisioned result queue; the set of `ReplyTo` values must stay within the granted
+  queues).
 
 ## Assumptions
 

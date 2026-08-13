@@ -255,7 +255,7 @@ sequenceDiagram
 - **Provisioning (OQ-1 — two paths, Platform to choose):** (a) ASB namespace/queues + role assignments
   via `cpp-helm-chart` ASO CRDs (`servicebus.azure.com`, `authorization.azure.com`) **if** the cluster's
   ASO version serves them at a stable API version; else (b) Platform out-of-band request (matching the
-  Flux/idam model). Design does not depend on which — both yield namespace-scoped RBAC.
+  Flux/idam model). Design does not depend on which — both yield the same queue-scoped RBAC.
 - **CI:** **GitHub Actions** (template-shipped) — `ci-draft.yml`→`ci-build-publish.yml` (build+unit+IT),
   `code-analysis.yml` (PMD), `secrets-scanner.yml`, `codeql.yml`; release via `ci-released.yml`. **Not
   Azure DevOps** (FR-011). Pattern ← `cpp-mbd-idam-integration`.
@@ -278,8 +278,8 @@ sequenceDiagram
    omit absent optionals; `additionalProperties:false`. *Mitigation:* golden-master diff test (FR-008)
    against the two schemas in `legacy-result-event-contract.md`; MVP exercises publish only via a
    synthetic `ReplyTo` message. Blast: medium (a spurious field silently breaks a future consumer).
-- **Reversibility:** high for internal choices (envelope, schema location are config / in-repo). One-way-ish doors: **retiring the legacy service** and **ASB namespace-scoped RBAC model**
-  (queue-scope would force a redesign of `ReplyTo` routing) — both already mandated by requirements, so
+- **Reversibility:** high for internal choices (envelope, schema location are config / in-repo). One-way-ish doors: **retiring the legacy service** and **ASB queue-scoped RBAC model**
+  (`ReplyTo` must resolve to a granted result queue; a new result queue needs a new Sender grant) — both already mandated by requirements, so
   no new lock-in introduced here.
 
 ### Alternatives Considered

@@ -150,7 +150,7 @@
       <tr><td>ReplyTo</td><td>native ASB property → gates + names result queue</td><td>published to that queue</td></tr>
       <tr><td>correlation</td><td><code>applicationProperties.correlationId</code> → MDC</td><td>same corrId propagated; <code>userId</code> on sent when present</td></tr>
     </table>
-    <p>Decision (Q1): <b>Stage 2 authoritative, producer conforms</b>; matches the house MbD pattern in <code>cpp-mbd-idam-integration/ServiceBusEventConsumer</code>. ASB RBAC is <b>namespace-scoped</b> (queue-scope would break dynamic ReplyTo routing).</p>
+    <p>Decision (Q1): <b>Stage 2 authoritative, producer conforms</b>; matches the house MbD pattern in <code>cpp-mbd-idam-integration/ServiceBusEventConsumer</code>. ASB RBAC is <b>queue (entity) scoped</b> — Data Receiver on the command queue (<code>ng-send-email</code>) + Data Sender on each targeted result queue (today the single <code>mi-reportdata-notification-result</code>); least-privilege, and the set of <code>ReplyTo</code> values must stay within the granted queues (a new result queue is one additional queue-scoped Sender grant).</p>
   </section>
 
   <section>

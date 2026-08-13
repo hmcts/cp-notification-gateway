@@ -17,8 +17,12 @@ string locally); this story is about proving the non-emulator, production auth p
   uses `DefaultAzureCredential` and no SAS token or connection string is present in config, env vars, or
   Helm values.
 - [ ] AC-023: Given the managed identity, when RBAC is inspected, then it holds Azure Service Bus Data
-  Receiver + Data Sender at **namespace** scope (not queue/entity scope — queue scope would break
-  dynamic `ReplyTo` routing).
+  Receiver on the command queue (`ng-send-email`) and Azure Service Bus Data Sender on the result queue
+  (`mi-reportdata-notification-result`), both at **queue (entity) scope** — least-privilege, not
+  namespace scope. The inbound `ReplyTo` resolves to the single provisioned result queue, so a
+  queue-scoped Sender is sufficient. Constraint: because the code sends to whatever `ReplyTo` the message
+  carries, the set of `ReplyTo` values MUST stay within the queues granted here — if additional result
+  queues are introduced, extend the Sender grant per queue (or widen to namespace scope).
 
 ## NFR links
 - NFR-002 (Security — auth to Azure): zero SAS tokens/connection strings in code, config, env vars,
@@ -42,6 +46,8 @@ string locally); this story is about proving the non-emulator, production auth p
 ## Notes / open questions
 - **FR/AC traceability:** FR-013 → AC-022, AC-023.
 - **Jira story ticket:** not yet created — to be raised once ticket creation is approved.
-- Verification of AC-023 (namespace-scope RBAC) is only fully provable once NG-S08 has provisioned the
+- Verification of AC-023 (queue-scope RBAC) is only fully provable once NG-S08 has provisioned the
   real identity in STE — this story's code can be reviewed/merged independently, but its DoD's
-  "deployed to and verified" step is naturally sequenced after NG-S08.
+  "deployed to and verified" step is naturally sequenced after NG-S08. *(Verified in STE01 on 2026-08-13:
+  the `notificationgateway` MI holds queue-scoped `Data Receiver@ng-send-email` +
+  `Data Sender@mi-reportdata-notification-result` — matches this AC.)*

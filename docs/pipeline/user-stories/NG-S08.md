@@ -3,7 +3,7 @@
 ## User story
 As the **platform engineering team**,
 I want **the service's per-context managed identity provisioned with RBAC (ASB Data Receiver + Data
-Sender at namespace scope, Storage Blob Data Reader on the attachment container(s), Key Vault Secrets
+Sender at queue (entity) scope, Storage Blob Data Reader on the attachment container(s), Key Vault Secrets
 User read-only), and the ASB namespace + command/result queues provisioned with those role assignments
 in place**,
 so that **cp-notification-gateway can authenticate to ASB, Blob, and Key Vault without any secret ever
@@ -16,8 +16,9 @@ shippable infrastructure outcome. This is an ops/IaC story (`cpp-helm-chart`, `c
 a Platform out-of-band request per OQ-1), distinct from the application code in NG-S07.
 
 ## Acceptance criteria
-- [ ] AC-024: Given the deployed identity, when RBAC is listed, then it holds ASB Data Receiver + Data
-  Sender (namespace scope), Storage Blob Data Reader on the attachment container(s) — including
+- [ ] AC-024: Given the deployed identity, when RBAC is listed, then it holds ASB Data Receiver on the
+  command queue (`ng-send-email`) + Data Sender on the result queue (`mi-reportdata-notification-result`)
+  at **queue (entity) scope**, Storage Blob Data Reader on the attachment container(s) — including
   cross-context read of mi-reportdata's container — and Key Vault Secrets User; no ASB SAS secret
   exists in Key Vault.
 - [ ] AC-025: Given the ASB namespace, when provisioned, then the command and result queues exist and
@@ -48,7 +49,7 @@ a Platform out-of-band request per OQ-1), distinct from the application code in 
 - **Inherited open item (Platform-owned, not blocking this story's docs):** OQ-1 — whether the
   cluster's ASO version can provision ASB namespaces/queues and role-assignment CRDs directly
   (`cpp-helm-chart`) or whether this requires a Platform out-of-band request. Both provisioning paths
-  yield the same namespace-scoped RBAC outcome described in the ACs above; Platform decides the
+  yield the same queue-scoped RBAC outcome described in the ACs above; Platform decides the
   mechanism. Owner: Platform, due TBD (per requirements.md Open questions and architecture-design.md
   Deployment section).
 - Cross-context blob RBAC grant on mi-reportdata's container needs sign-off from the mi-reportdata
