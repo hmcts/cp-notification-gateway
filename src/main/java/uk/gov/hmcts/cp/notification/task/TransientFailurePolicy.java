@@ -51,13 +51,16 @@ public class TransientFailurePolicy {
             final Integer statusCode,
             final String exhaustedReason,
             final ExecutionInfo executionInfo) {
+        final ExecutionInfo result;
         if (retriesExhausted(executionInfo)) {
             LOG.warn("Notification {} did not resolve (statusCode {}) after exhausting retries — marking FAILED",
                     notificationId, statusCode);
-            return fail(notificationId, statusCode, exhaustedReason, executionInfo);
+            result = fail(notificationId, statusCode, exhaustedReason, executionInfo);
+        } else {
+            LOG.info("Transient failure for notification {} (statusCode {}) — will retry", notificationId, statusCode);
+            result = retry(executionInfo);
         }
-        LOG.info("Transient failure for notification {} (statusCode {}) — will retry", notificationId, statusCode);
-        return retry(executionInfo);
+        return result;
     }
 
     /**

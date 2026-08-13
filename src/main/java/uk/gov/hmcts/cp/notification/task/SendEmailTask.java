@@ -62,16 +62,18 @@ public class SendEmailTask implements ExecutableTask {
     public ExecutionInfo execute(final ExecutionInfo executionInfo) {
         final SendEmailCommand command = objectMapper.readValue(
                 executionInfo.getJobData().toString(), SendEmailCommand.class);
+        ExecutionInfo result;
         try {
-            return send(command, downloadAttachment(command), executionInfo);
+            result = send(command, downloadAttachment(command), executionInfo);
         } catch (final PermanentBlobException e) {
             LOG.warn("Permanent attachment failure for notification {} — marking FAILED, no retry",
                     command.notificationId());
-            return failurePolicy.fail(command.notificationId(), e.getStatusCode(), e.getMessage(), executionInfo);
+            result = failurePolicy.fail(command.notificationId(), e.getStatusCode(), e.getMessage(), executionInfo);
         } catch (final BlobStorageException e) {
-            return failurePolicy.retryOrFail(command.notificationId(), e.getStatusCode(),
+            result = failurePolicy.retryOrFail(command.notificationId(), e.getStatusCode(),
                     "Attachment download did not recover within the retry window", executionInfo);
         }
+        return result;
     }
 
     private byte[] downloadAttachment(final SendEmailCommand command) {
@@ -84,23 +86,26 @@ public class SendEmailTask implements ExecutableTask {
 
     private ExecutionInfo send(
             final SendEmailCommand command, final byte[] attachment, final ExecutionInfo executionInfo) {
+        ExecutionInfo result;
         try {
             final SendResult sendResult = emailSender.sendEmail(command, attachment);
             executionService.executeWith(taskFactory.createCheckStatusJob(command, sendResult));
-            return TransientFailurePolicy.completed(executionInfo);
+            result = TransientFailurePolicy.completed(executionInfo);
         } catch (final Office365NotYetSupportedException e) {
             LOG.warn("Notification {} requires the Office 365 route (attachment > 2MB) which is not yet "
                     + "available (NG-S10) — marking FAILED", command.notificationId());
-            return failurePolicy.fail(command.notificationId(), HTTP_PAYLOAD_TOO_LARGE, e.getMessage(), executionInfo);
+            result = failurePolicy.fail(command.notificationId(), HTTP_PAYLOAD_TOO_LARGE, e.getMessage(), executionInfo);
         } catch (final GovNotifyException e) {
             if (GovNotifyFailureClassifier.isTemporary(e.getHttpStatus(), e.getMessage())) {
-                return failurePolicy.retryOrFail(command.notificationId(), e.getHttpStatus(),
+                result = failurePolicy.retryOrFail(command.notificationId(), e.getHttpStatus(),
                         "Gov.Notify send did not recover within the retry window", executionInfo);
+            } else {
+                LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
+                        command.notificationId(), e.getHttpStatus());
+                result = failurePolicy.fail(command.notificationId(), e.getHttpStatus(), e.getMessage(), executionInfo);
             }
-            LOG.warn("Permanent send failure for notification {} (http {}) — marking FAILED",
-                    command.notificationId(), e.getHttpStatus());
-            return failurePolicy.fail(command.notificationId(), e.getHttpStatus(), e.getMessage(), executionInfo);
         }
+        return result;
     }
 
     @Override

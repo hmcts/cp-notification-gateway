@@ -51,35 +51,42 @@ public class CheckEmailStatusTask implements ExecutableTask {
         final UUID notificationId =
                 UUID.fromString(executionInfo.getJobData().getString(KEY_NOTIFICATION_ID));
         final String reference = executionInfo.getJobData().getString(KEY_REFERENCE);
+        ExecutionInfo result;
         try {
-            return evaluate(govNotifyClient.checkStatus(reference), notificationId, executionInfo);
+            result = evaluate(govNotifyClient.checkStatus(reference), notificationId, executionInfo);
         } catch (final GovNotifyException e) {
-            return handlePollFailure(notificationId, executionInfo, e);
+            result = handlePollFailure(notificationId, executionInfo, e);
         }
+        return result;
     }
 
     private ExecutionInfo evaluate(
             final NotificationStatus status, final UUID notificationId, final ExecutionInfo executionInfo) {
+        final ExecutionInfo result;
         if (status == NotificationStatus.DELIVERED) {
             statusService.markSent(notificationId, emailDetailsFrom(executionInfo.getJobData()));
-            return TransientFailurePolicy.completed(executionInfo);
-        }
-        if (status.isInProgress()) {
-            return failurePolicy.retryOrFail(notificationId, null,
+            result = TransientFailurePolicy.completed(executionInfo);
+        } else if (status.isInProgress()) {
+            result = failurePolicy.retryOrFail(notificationId, null,
                     "Gov.Notify did not reach a terminal status within the retry window (last status '"
                             + status.getStatus() + "')", executionInfo);
+        } else {
+            result = failurePolicy.fail(notificationId, null,
+                    "Gov.Notify responded with status '" + status.getStatus() + "'", executionInfo);
         }
-        return failurePolicy.fail(notificationId, null,
-                "Gov.Notify responded with status '" + status.getStatus() + "'", executionInfo);
+        return result;
     }
 
     private ExecutionInfo handlePollFailure(
             final UUID notificationId, final ExecutionInfo executionInfo, final GovNotifyException e) {
+        final ExecutionInfo result;
         if (isTemporary(e.getHttpStatus(), e.getMessage())) {
-            return failurePolicy.retryOrFail(notificationId, e.getHttpStatus(),
+            result = failurePolicy.retryOrFail(notificationId, e.getHttpStatus(),
                     "Gov.Notify status polling did not recover within the retry window", executionInfo);
+        } else {
+            result = failurePolicy.fail(notificationId, e.getHttpStatus(), e.getMessage(), executionInfo);
         }
-        return failurePolicy.fail(notificationId, e.getHttpStatus(), e.getMessage(), executionInfo);
+        return result;
     }
 
     private static NotificationEmailDetails emailDetailsFrom(final JsonObject jobData) {
