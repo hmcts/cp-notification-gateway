@@ -6,7 +6,7 @@ plugins {
   id 'jacoco'
   id 'maven-publish'
   id 'com.github.ben-manes.versions' version '0.61.0'
-  id 'org.cyclonedx.bom' version '3.4.0'
+  id 'org.cyclonedx.bom' version '3.4.1'
   id 'com.gorylenko.gradle-git-properties' version '4.0.1'
 }
 
@@ -51,7 +51,7 @@ dependencies {
   testImplementation 'org.springframework.boot:spring-boot-restclient'
 
   // BDD / acceptance tests — plain Cucumber on JUnit Platform + Spring (no Serenity)
-  testImplementation platform('io.cucumber:cucumber-bom:7.34.6')
+  testImplementation platform('io.cucumber:cucumber-bom:7.34.7')
   testImplementation 'io.cucumber:cucumber-java'
   testImplementation 'io.cucumber:cucumber-junit-platform-engine'
   testImplementation 'io.cucumber:cucumber-spring'
@@ -84,7 +84,7 @@ dependencies {
 
   // Gov.UK Notify official client — same library and version as the legacy notification context;
   // owns the JWT auth, request payload serialisation, and response parsing (contract parity).
-  implementation 'uk.gov.service.notify:notifications-java-client:6.1.0-RELEASE'
+  implementation 'uk.gov.service.notify:notifications-java-client:6.2.0-RELEASE'
 
   // --- Azure integrations (NG-S02): ASB command consumer + Blob attachment download ---
   // Managed Identity in real envs (DefaultAzureCredential); connection-string only for emulator/local.
@@ -111,11 +111,11 @@ dependencies {
   // with the app's embedded Tomcat); Awaitility drives the async ASB/cp-task-manager assertions.
   testImplementation 'org.wiremock:wiremock-standalone:3.13.2'
   testImplementation 'org.awaitility:awaitility:4.3.0'
-  testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:6.1.0'
+  testImplementation 'net.javacrumbs.json-unit:json-unit-assertj:6.2.0'
   // Pinned to 1.5.2: 3.x is a breaking API redesign (JsonSchemaFactory→SchemaRegistry,
   // JsonSchema→Schema, ValidationMessage→Error, SpecVersion→SpecificationVersion). ContractSchema
   // targets the 1.5.x API. See dependabot ignore for semver-major on this artifact.
-  testImplementation 'com.networknt:json-schema-validator:1.5.2'
+  testImplementation 'com.networknt:json-schema-validator:1.5.9'
 
   // OpenAPI conformance (NG-S04): validate the query controller's requests/responses against the
   // in-repo OpenAPI 3.0 contract at contracts/openapi/notification-gateway.openapi.yaml via MockMvc.
