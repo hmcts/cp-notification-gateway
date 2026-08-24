@@ -1,7 +1,7 @@
 plugins {
   id 'application'
   id 'java'
-  id 'org.springframework.boot' version '4.1.0'
+  id 'org.springframework.boot' version '4.1.1'
   id 'io.spring.dependency-management' version '1.1.7'
   id 'jacoco'
   id 'maven-publish'
@@ -66,7 +66,7 @@ dependencies {
 
   // Security: pin transitive tomcat-embed-core to patched version (CVE-2026-41293, -43512, et al.)
   // Brought in transitively via spring-boot-starter-web; >=11.0.0-M1,<11.0.22 are vulnerable
-  implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
+  implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.25'
 
   // --- Persistence: JPA + Postgres + Flyway (NG-S01) ---
   implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -88,8 +88,8 @@ dependencies {
 
   // --- Azure integrations (NG-S02): ASB command consumer + Blob attachment download ---
   // Managed Identity in real envs (DefaultAzureCredential); connection-string only for emulator/local.
-  implementation 'com.azure:azure-messaging-servicebus:7.17.19'
-  implementation 'com.azure:azure-storage-blob:12.35.0'
+  implementation 'com.azure:azure-messaging-servicebus:7.17.20'
+  implementation 'com.azure:azure-storage-blob:12.35.1'
   implementation 'com.azure:azure-identity:1.18.4'
 
   // --- Integration testing: Postgres via Testcontainers ---
