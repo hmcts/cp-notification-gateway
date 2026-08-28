@@ -1,4 +1,4 @@
-# cp-notification-gateway
+# cp-gov-uk-notify-gateway
 
 Spring Boot (Modern by Default) service that dispatches outbound notifications — email and letter — on
 behalf of CPP contexts. It is the re-platform of the legacy WildFly `cpp-context-notification-notify`.

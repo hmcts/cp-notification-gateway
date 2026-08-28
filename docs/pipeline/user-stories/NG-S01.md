@@ -1,7 +1,7 @@
 # [NG-S01] Service scaffold and notification/jobs schema
 
 ## User story
-As a **developer on cp-notification-gateway**,
+As a **developer on cp-gov-uk-notify-gateway**,
 I want **the service scaffolded from the HMCTS Spring Boot template with the `notification` table and
 the co-located cp-task-manager `jobs` table migrated in one Flyway run**,
 so that **every subsequent story has a buildable, correctly-migrated, house-style-conformant foundation

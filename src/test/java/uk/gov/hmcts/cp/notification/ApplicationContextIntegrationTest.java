@@ -52,8 +52,8 @@ class ApplicationContextIntegrationTest extends AbstractEndToEndIntegrationTest 
 
             final Map<String, Object> build = (Map<String, Object>) body.get("build");
             assertThat(build).isNotNull();
-            assertThat(build.get("artifact")).isEqualTo("cp-notification-gateway");
-            assertThat(build.get("name")).isEqualTo("cp-notification-gateway");
+            assertThat(build.get("artifact")).isEqualTo("cp-gov-uk-notify-gateway");
+            assertThat(build.get("name")).isEqualTo("cp-gov-uk-notify-gateway");
             assertThat(build.get("time")).isNotNull();
             assertThat(build.get("version")).isNotNull();
 

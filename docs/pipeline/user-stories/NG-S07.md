@@ -1,7 +1,7 @@
 # [NG-S07] Managed-identity RBAC for Azure Service Bus (application code)
 
 ## User story
-As **the service (cp-notification-gateway)**,
+As **the service (cp-gov-uk-notify-gateway)**,
 I want **to authenticate all Azure Service Bus access — consume and send — exclusively via
 managed-identity RBAC using `DefaultAzureCredential`**,
 so that **no SAS token or connection string ever exists in production configuration**.
@@ -49,5 +49,5 @@ string locally); this story is about proving the non-emulator, production auth p
 - Verification of AC-023 (queue-scope RBAC) is only fully provable once NG-S08 has provisioned the
   real identity in STE — this story's code can be reviewed/merged independently, but its DoD's
   "deployed to and verified" step is naturally sequenced after NG-S08. *(Verified in STE01 on 2026-08-13:
-  the `notificationgateway` MI holds queue-scoped `Data Receiver@ng-send-email` +
+  the `govuknotifygateway` MI holds queue-scoped `Data Receiver@ng-send-email` +
   `Data Sender@mi-reportdata-notification-result` — matches this AC.)*

@@ -18,7 +18,7 @@ confirmed against the estate:
 - **`service-hmcts-crime-springboot-template`** (canonical template): ships the contract-first
   convention as a `validateApiSpecVersions` gate over a `configurations.apiSpec` dependency, enforced in
   `ci-released.yml`. Contract and implementation live in **separate repos**.
-- **`cp-notification-gateway`** is already committed to this pattern in its own design docs
+- **`cp-gov-uk-notify-gateway`** is already committed to this pattern in its own design docs
   (`architecture-design.md`, `NG-S04.md` — "API-first, per Q6" → companion `api-notification-gateway`
   repo). The `apispec-validation.gradle` + `ci-released.yml` gate is pre-seeded from the template.
 
@@ -90,7 +90,7 @@ notification record and finds it by status/date). The auth/deny scenario belongs
 ## 6. Contract & validation (test-time + runtime)
 
 The query API's contract is an **authored OpenAPI spec kept in-repo at
-`contracts/openapi/notification-gateway.openapi.yaml`** (no code generation — the controller is
+`contracts/openapi/gov-uk-notify-gateway.openapi.yaml`** (no code generation — the controller is
 hand-written per §3). It may be published to clients later, at which point it seeds the
 `api-notification-gateway` repo. Two enforcement layers keep the hand-written controller honest until
 runtime spec-based validation is adopted:
@@ -112,6 +112,6 @@ runtime spec-based validation is adopted:
   CourtListPublishApi`).
 - `service-hmcts-crime-springboot-template`: `gradle/apispec-validation.gradle`,
   `.github/workflows/ci-released.yml`.
-- `cp-notification-gateway`: `docs/pipeline/architecture-design.md`,
+- `cp-gov-uk-notify-gateway`: `docs/pipeline/architecture-design.md`,
   `docs/pipeline/user-stories/NG-S04.md`, `gradle/apispec-validation.gradle`,
   `.github/workflows/ci-released.yml`, `contracts/` (async message schemas only — not the REST spec).

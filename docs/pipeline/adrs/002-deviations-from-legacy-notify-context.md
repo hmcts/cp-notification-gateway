@@ -4,7 +4,7 @@
 
 ## Context
 
-`cp-notification-gateway` is the Modern-by-Default (Spring Boot) replacement for the legacy
+`cp-gov-uk-notify-gateway` is the Modern-by-Default (Spring Boot) replacement for the legacy
 WildFly/CQRS context service `cpp-context-notification-notify`. It is a re-platforming, not a
 re-specification, so the default expectation is behavioural parity with legacy. Where the new
 service **intentionally** or **structurally** diverges from legacy behaviour, we record it here

@@ -86,7 +86,7 @@ NG-S02.
   NG-S02/NG-S03/NG-S10/NG-S11/NG-S12.
 - **Jira story ticket:** created as [PEG-3382](https://tools.hmcts.net/jira/browse/PEG-3382).
 - **Schema-owning location (Q6, resolved by Stage 2):** the two JSON schemas live in-repo under
-  `contracts/` in `cp-notification-gateway`, additive-only evolution; promote to a shared registry only
+  `contracts/` in `cp-gov-uk-notify-gateway`, additive-only evolution; promote to a shared registry only
   when a real originator opts in.
 - Depends on NG-S02 (needs the terminal-state hooks from `markSent()`/`markFailed()`); does not require
   any change to NG-S02's core send logic.

@@ -1,7 +1,7 @@
 # [NG-S05] CI validation pipeline (GitHub Actions)
 
 ## User story
-As a **developer on cp-notification-gateway**,
+As a **developer on cp-gov-uk-notify-gateway**,
 I want **every pull request to run build, unit/integration test, lint, secrets-scan, and CodeQL/SBOM
 gates via GitHub Actions**,
 so that **no change merges to `main` without passing the full house-style validation suite**.

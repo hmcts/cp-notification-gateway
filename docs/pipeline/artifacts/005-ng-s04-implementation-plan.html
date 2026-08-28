@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- claude-artifact: created=2026-07-24 project=cp-notification-gateway kind=report -->
+<!-- claude-artifact: created=2026-07-24 project=cp-gov-uk-notify-gateway kind=report -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NG-S04 — Implementation Plan</title>
@@ -85,7 +85,7 @@
       <code>notification</code> table — <code>GET /notifications/{notificationId}</code> (all columns; 404 when
       absent) and a paged <code>GET /notifications?status=&amp;createdFrom=&amp;createdTo=&amp;page=&amp;size=</code>
       search — exposing a local <code>NotificationView</code> DTO (camelCase JSON) whose shape conforms to
-      <code>contracts/openapi/notification-gateway.openapi.yaml</code>. Interim posture: served <b>open
+      <code>contracts/openapi/gov-uk-notify-gateway.openapi.yaml</code>. Interim posture: served <b>open
       (permit-all) in every profile</b>, clearly commented as open until NG-S14 adds authentication. Built per
       the chosen <b>Option B</b> (hand-written controller + local DTO) — no generated interface, no ADR.</p>
     <div class="overall" style="--w:100%">
@@ -173,7 +173,7 @@
         <li><span class="box"></span><code>NotificationRepositoryIntegrationTest</code> — save/read-back + status/date-range search (Testcontainers Postgres)</li>
         <li><span class="box"></span><code>NotificationQueryServiceTest</code> — all-column mapping, empty lookup, filtered+paged search</li>
         <li><span class="box"></span><code>NotificationQueryControllerIntegrationTest</code> — 200 all-columns fixture, 404, filter/paging delegation, 405 on write verbs, 4× <code>SearchParameterValidation</code> 400s</li>
-        <li><span class="box"></span><code>NotificationQueryOpenApiConformanceTest</code> — lookup/404/search responses conform to <code>contracts/openapi/notification-gateway.openapi.yaml</code></li>
+        <li><span class="box"></span><code>NotificationQueryOpenApiConformanceTest</code> — lookup/404/search responses conform to <code>contracts/openapi/gov-uk-notify-gateway.openapi.yaml</code></li>
         <li><span class="box"></span><code>notification-query.feature</code> — operator looks up by id and searches by status+creation date (served open)</li>
         <li><span class="box"></span><code>./gradlew test</code> — full suite green; then refactor (SRP: controller / service / mapper-in-service / repository), re-run</li>
       </ul>
@@ -199,7 +199,7 @@
     </div>
   </div>
 
-  <footer>NG-S04 · cp-notification-gateway · A-TDD RED→GREEN · read-only query API · interim permit-all until NG-S14 · Option B</footer>
+  <footer>NG-S04 · cp-gov-uk-notify-gateway · A-TDD RED→GREEN · read-only query API · interim permit-all until NG-S14 · Option B</footer>
 </div>
 </body>
 </html>

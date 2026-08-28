@@ -6,7 +6,7 @@ I want **the service's per-context managed identity provisioned with RBAC (ASB D
 Sender at queue (entity) scope, Storage Blob Data Reader on the attachment container(s), Key Vault Secrets
 User read-only), and the ASB namespace + command/result queues provisioned with those role assignments
 in place**,
-so that **cp-notification-gateway can authenticate to ASB, Blob, and Key Vault without any secret ever
+so that **cp-gov-uk-notify-gateway can authenticate to ASB, Blob, and Key Vault without any secret ever
 being stored**.
 
 ## Background

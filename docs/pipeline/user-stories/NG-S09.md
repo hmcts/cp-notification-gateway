@@ -4,7 +4,7 @@
 As the **platform engineering team**,
 I want **the service's Postgres database/schema provisioned across environments and the service
 deployed to STE via a Flux CD `HelmRelease` of the shared `springboot-app` chart**,
-so that **cp-notification-gateway runs in STE without any legacy ADO/Helmsman deployment path**.
+so that **cp-gov-uk-notify-gateway runs in STE without any legacy ADO/Helmsman deployment path**.
 
 ## Background
 FR-016 (Postgres provisioning) and FR-017 (Flux CD deployment) are bundled: the service cannot be

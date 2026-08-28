@@ -1,4 +1,4 @@
-# User stories index: cp-notification-gateway (Stage 3)
+# User stories index: cp-gov-uk-notify-gateway (Stage 3)
 
 > Pipeline **Stage 3 (User Story)**. Inputs: `docs/pipeline/architecture-design.md`,
 > `docs/pipeline/requirements.md`, `docs/pipeline/legacy-result-event-contract.md`,

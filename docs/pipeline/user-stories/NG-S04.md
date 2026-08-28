@@ -58,7 +58,7 @@ external exposure**. See `docs/pipeline/pending/query-api-implementation.md` and
 - [ ] The interim open posture is intentional and visible in code — a `permitAll()` security
   configuration marked as interim-until-NG-S14 (not a silent absence of security). No test asserts
   denial for this story (the deny/auth test is NG-S14's).
-- [ ] Contract authored as an OpenAPI spec in `contracts/openapi/notification-gateway.openapi.yaml`
+- [ ] Contract authored as an OpenAPI spec in `contracts/openapi/gov-uk-notify-gateway.openapi.yaml`
   (no code generation); the controller's conformance to it is enforced by a spec-validation test
   (`swagger-request-validator`), so response/param/status drift fails the build.
 - [ ] Runtime input validation on the query/path params via Jakarta Bean Validation
