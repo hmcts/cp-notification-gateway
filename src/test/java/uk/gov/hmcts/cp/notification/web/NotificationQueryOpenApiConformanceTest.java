@@ -27,7 +27,7 @@ import static uk.gov.hmcts.cp.notification.integration.testdata.NotificationView
 @ActiveProfiles("test")
 class NotificationQueryOpenApiConformanceTest {
 
-    private static final String SPEC = "contracts/openapi/notification-gateway.openapi.yaml";
+    private static final String SPEC = "contracts/openapi/gov-uk-notify-gateway.openapi.yaml";
     private static final UUID NOTIFICATION_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     @Autowired

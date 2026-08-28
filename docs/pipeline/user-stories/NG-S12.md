@@ -1,7 +1,7 @@
 # [NG-S12] At-least-once safety: state-transition guard and Gov.UK Notify recover-by-reference
 
 ## User story
-As **the service (cp-notification-gateway)**,
+As **the service (cp-gov-uk-notify-gateway)**,
 I want **cp-task-manager task re-runs and ASB message redeliveries to never cause a duplicate email
 send or a duplicate result-event publish**,
 so that **at-least-once delivery/execution semantics produce an exactly-once *observable* effect**.

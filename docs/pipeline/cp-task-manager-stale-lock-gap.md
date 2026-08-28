@@ -1,7 +1,7 @@
 # Known gap: cp-task-manager has no stale-lock (crash) recovery for in-flight jobs
 
 **Status:** OPEN — upstream dependency gap. Owner: cp-task-manager maintainers.
-Raised from the `cp-notification-gateway` Stage 2 design review (2026-07-10).
+Raised from the `cp-gov-uk-notify-gateway` Stage 2 design review (2026-07-10).
 Linked from `architecture-design.md` as **OQ-4**.
 
 ## Summary

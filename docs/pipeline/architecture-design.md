@@ -1,4 +1,4 @@
-# Architecture & Design: cp-notification-gateway (notification-notify MbD rewrite)
+# Architecture & Design: cp-gov-uk-notify-gateway (notification-notify MbD rewrite)
 
 > Pipeline **Stage 2 (Architecture & Design)**. Input artefacts (Stage 1 → Stage 2 handoff manifest):
 > `docs/pipeline/requirements.md` and `docs/pipeline/legacy-result-event-contract.md`. Always-load
@@ -10,7 +10,7 @@
 ## Design: mi-reportdata email notification slice on a Modern-by-Default gateway
 
 ### Summary
-`cp-notification-gateway` is a new **Modern-by-Default (MbD) Spring Boot service** that re-platforms the
+`cp-gov-uk-notify-gateway` is a new **Modern-by-Default (MbD) Spring Boot service** that re-platforms the
 legacy WildFly CQRS/event-sourced `cpp-context-notification-notify` onto direct-to-DB persistence, Azure
 Service Bus (ASB) transport, cp-task-manager async, and Azure Blob attachments — **without changing
 observable business behaviour** (NFR-001 golden-master parity). It consumes `send-email-notification`
@@ -36,7 +36,7 @@ rich aggregate needing replay/audit-by-event — so CQRS/ES is deliberately drop
   hand-rolled.
 
 ### Bounded Context & Data Ownership
-- **Owning context:** `cp-notification-gateway` owns the `notification` table end-to-end (status,
+- **Owning context:** `cp-gov-uk-notify-gateway` owns the `notification` table end-to-end (status,
   timestamps, error). cp-task-manager's `jobs` table is **co-located in the same datasource** (FR-002)
   so INSERT-row + enqueue-task commit in one local Postgres transaction (NFR-010).
 - **No cross-context DB reads.** Integration with other contexts is exclusively via ASB messages and a
@@ -54,7 +54,7 @@ rich aggregate needing replay/audit-by-event — so CQRS/ES is deliberately drop
 ### Components
 | Repo / module | New / changed | Purpose | Pattern source (cited) |
 |---|---|---|---|
-| **`cp-notification-gateway`** (svc) | new | the service | template `service-hmcts-crime-springboot-template` |
+| **`cp-gov-uk-notify-gateway`** (svc) | new | the service | template `service-hmcts-crime-springboot-template` |
 | `…/consumer` | new | `ServiceBusProcessorClient` + listener, `disableAutoComplete`, complete/abandon | `cpp-mbd-idam-integration/src/main/java/uk/gov/hmcts/cp/idam/consumer/ServiceBusEventConsumer.java` (body read + complete/abandon), `…/config/ServiceBusConfig.java` |
 | `…/command` | new | `SendEmailCommand` DTO (flat JSON, logical fields per requirements §Interface contracts) | (legacy) `notificationnotify.command.send-email-notification` |
 | `…/persistence` | new | `Notification` JPA entity (incl. `client_context` for result-event parity and `result_queue` — the inbound ASB `ReplyTo`, both persisted on ingest), repository, `V1000__create_notification_table.sql` | `cp-court-list-publishing-service` (Flyway/JPA + real cp-task-manager consumer) |
@@ -87,7 +87,7 @@ mi-reportdata sends no `ReplyTo`)
   `additionalProperties:false` — add no fields). `sent` = verbatim copy of internal payload; `failed`
   = hand-built, drops `failedTask`, omits absent optionals (`statusCode`/`clientContext`).
 - **Schema-owning location (Q6):** the two JSON schemas live **in-repo** under `contracts/` in
-  `cp-notification-gateway` (no external consumer exists for the MVP). **Evolution: additive-only**
+  `cp-gov-uk-notify-gateway` (no external consumer exists for the MVP). **Evolution: additive-only**
   (optional fields only); a breaking change requires a new event name + ADR. When a real originator
   opts in, revisit promoting them to a shared CPP event-schema registry.
 
@@ -142,7 +142,7 @@ flowchart LR
     RQ[[ReplyTo result queue<br/>none for MVP]]
     DLQ[[DLQ]]
   end
-  subgraph svc[cp-notification-gateway · MbD Spring Boot]
+  subgraph svc[cp-gov-uk-notify-gateway · MbD Spring Boot]
     C[ASB consumer<br/>ServiceBusProcessorClient]
     DB[(Postgres:<br/>notification + jobs)]
     TM[cp-task-manager<br/>embedded]
@@ -297,7 +297,7 @@ sequenceDiagram
   in-repo `contracts/` with additive-only evolution is lighter and re-promotable later.
 
 ### Implementation Outline
-- [ ] Scaffold `cp-notification-gateway` via `springboot-service-from-template` (Spring Boot 4.x, Java
+- [ ] Scaffold `cp-gov-uk-notify-gateway` via `springboot-service-from-template` (Spring Boot 4.x, Java
       25, Gradle, actuator; deps: ASB SDK, Blob SDK, azure-identity, cp-task-manager, Flyway, Postgres,
       Gov.Notify client) — FR-001.
 - [ ] Add `V1000__create_notification_table.sql`; verify cp-task-manager `jobs` auto-merge — FR-002.
@@ -319,7 +319,7 @@ sequenceDiagram
 - [ ] STE simulators/stubs; Flux `HelmRelease`; MI + RBAC; ASB/DB provisioning — FR-012–017.
 
 ### Follow-ups
-- **C4 model:** add container `cp-notification-gateway` to `cp-c4-architecture` with relations:
+- **C4 model:** add container `cp-gov-uk-notify-gateway` to `cp-c4-architecture` with relations:
   `mi-reportdata → ng-send-email (ASB)`, `gateway → Gov.UK Notify`, `gateway → O365/APIM`,
   `gateway → Azure Blob (mi-reportdata container, cross-context read)`, `gateway → ReplyTo queue`,
   `gateway → Postgres`, and the retirement of `cpp-context-notification-notify`.

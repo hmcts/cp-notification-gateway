@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Notification Gateway Query API
+  title: Gov UK Notify Gateway Query API
   description: >-
     Read-only query API over the notification record. Exposes a single-record
     lookup by id and a paged search by delivery status and creation date.

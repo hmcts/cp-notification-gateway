@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: notificationgateway
-      POSTGRES_USER: notificationgateway
-      POSTGRES_PASSWORD: notificationgateway
+      POSTGRES_DB: govuknotifygateway
+      POSTGRES_USER: govuknotifygateway
+      POSTGRES_PASSWORD: govuknotifygateway
     # No host port mapping: the app reaches Postgres over the compose network at `postgres:5432`.
     # (Avoids clashing with a Postgres already bound to host 5432.)
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notificationgateway -d notificationgateway"]
+      test: ["CMD-SHELL", "pg_isready -U govuknotifygateway -d govuknotifygateway"]
       interval: 5s
       timeout: 3s
       retries: 15
@@ -25,9 +25,9 @@ services:
     environment:
       # The app requires Postgres (JPA + Flyway); point it at the compose service so it can start for
       # local runs and the DAST job. Flyway creates the notification table + the co-located jobs table.
-      CP_NG_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationgateway
-      CP_NG_DATASOURCE_USERNAME: notificationgateway
-      CP_NG_DATASOURCE_PASSWORD: notificationgateway
+      CP_NG_DATASOURCE_URL: jdbc:postgresql://postgres:5432/govuknotifygateway
+      CP_NG_DATASOURCE_USERNAME: govuknotifygateway
+      CP_NG_DATASOURCE_PASSWORD: govuknotifygateway
       # Gov.Notify key is mandatory to boot (GovNotifyConfig fails fast on a blank key). This is a
       # non-functional Gov.Notify TEST-key placeholder so the app starts for local runs and the DAST
       # scan; no real notifications are sent (no Service Bus is wired here). Real keys come from Key Vault.

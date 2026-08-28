@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- claude-artifact: created=2026-07-13 project=cp-notification-gateway kind=report -->
+<!-- claude-artifact: created=2026-07-13 project=cp-gov-uk-notify-gateway kind=report -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NG-S01 — Implementation Plan</title>
@@ -78,7 +78,7 @@
   <header>
     <div class="kicker">Implementation Plan · NG-S01 · PEG-3372</div>
     <h1>Service scaffold &amp; notification/jobs schema</h1>
-    <p class="sub">Walking-skeleton enabler for cp-notification-gateway: scaffold from the HMCTS Spring Boot template, then A-TDD the notification schema and the co-located cp-task-manager <code>jobs</code> table into a single Flyway run. Clean A-TDD from the template; the parked <span class="mono">dev/PEG-3351</span> build is reference-only.</p>
+    <p class="sub">Walking-skeleton enabler for cp-gov-uk-notify-gateway: scaffold from the HMCTS Spring Boot template, then A-TDD the notification schema and the co-located cp-task-manager <code>jobs</code> table into a single Flyway run. Clean A-TDD from the template; the parked <span class="mono">dev/PEG-3351</span> build is reference-only.</p>
     <div class="overall" style="--w:60%">
       <div class="top"><span>Overall progress</span><b>60% · 9 of 15 tasks</b></div>
       <div class="track"><div class="fill"></div></div>
@@ -93,7 +93,7 @@
       <div class="ph-desc">Adopt the local template (<span class="mono">service-hmcts-crime-springboot-template@dev/add-bdd-capabilities</span>) as master source — no hand-rolled build/Dockerfile/logback.</div>
       <ul class="tasks">
         <li class="x"><span class="box"></span>Copy template (build.gradle, <code>gradle/*</code>, Dockerfile, CI, logback, acceptance harness) onto <code>dev/PEG-3372</code></li>
-        <li class="x"><span class="box"></span>Rebase package to <code>uk.gov.hmcts.cp.notification</code>; <code>settings.gradle</code> → <code>cp-notification-gateway</code></li>
+        <li class="x"><span class="box"></span>Rebase package to <code>uk.gov.hmcts.cp.notification</code>; <code>settings.gradle</code> → <code>cp-gov-uk-notify-gateway</code></li>
         <li class="x"><span class="box"></span>Add runtime deps: JPA, Postgres, Flyway (+postgresql), <code>task-manager-service:1.0.10</code>, jakarta.json</li>
       </ul>
       <span class="milestone">Scaffold compiles — <code>compileJava/compileTestJava</code> green</span>
@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <footer>NG-S01 · cp-notification-gateway · A-TDD RED→GREEN · scaffold + notification + co-located jobs (one Flyway run)</footer>
+  <footer>NG-S01 · cp-gov-uk-notify-gateway · A-TDD RED→GREEN · scaffold + notification + co-located jobs (one Flyway run)</footer>
 </div>
 </body>
 </html>

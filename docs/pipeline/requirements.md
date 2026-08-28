@@ -1,4 +1,4 @@
-# Requirements: cp-notification-gateway (notification-notify — Modern by Default rewrite)
+# Requirements: cp-gov-uk-notify-gateway (notification-notify — Modern by Default rewrite)
 
 > Pipeline stage 1 (Requirements). Source of truth for all downstream stages. **Human gate — not
 > approved until the user confirms.** Grounded solely in the reviewed design/planning docs under
@@ -10,7 +10,7 @@
 
 ## Context
 
-`cp-notification-gateway` is a new "Modern by Default" Spring Boot service that re-platforms the
+`cp-gov-uk-notify-gateway` is a new "Modern by Default" Spring Boot service that re-platforms the
 legacy WildFly 26 / Java 17 CQRS + Event-Sourcing service `cpp-context-notification-notify`. It
 dispatches notifications (emails, and — later — letters) on behalf of other Common Platform contexts,
 sending via Gov.UK Notify or Microsoft Office 365 (APIM), tracking delivery status, and (optionally)
@@ -60,7 +60,7 @@ upstream dependency.
 > may change later if a milestone is resequenced; if it does, IDs will be re-run to match.
 >
 > **Repo references** (last column) are drawn from the implementation plan's epic tables and are meant
-> to seed Jira ticket descriptions. **`svc`** = the service repo (`cp-notification-gateway`); **`←`** =
+> to seed Jira ticket descriptions. **`svc`** = the service repo (`cp-gov-uk-notify-gateway`); **`←`** =
 > pattern / port-from source; **(legacy)** = `cpp-context-notification-notify`. The **Jira** column records the created story key under epic [PEG-3350](https://tools.hmcts.net/jira/browse/PEG-3350) (blank = ticket not yet created).
 
 ### Milestone 1 — Bootstrap + Gov.UK Notify happy path (end-to-end, Gov.Notify only, attachments ≤ 2 MB)
